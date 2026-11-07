@@ -16,10 +16,15 @@ header('X-Content-Type-Options: nosniff');
 
 // Cron over HTTP (optional) — does not need a session
 if ($path === '/cron') {
-    $key = (string) config('cron_key', '');
-    if ($key === '' || !hash_equals($key, (string) ($_GET['key'] ?? ''))) {
+    $key = trim((string) config('cron_key', ''));
+    header('Content-Type: text/plain; charset=utf-8');
+    if ($key === '') {
         http_response_code(403);
-        exit('Forbidden');
+        exit("RLG cron: cron_key is empty in app/config.php\n");
+    }
+    if (!hash_equals($key, trim((string) ($_GET['key'] ?? '')))) {
+        http_response_code(403);
+        exit("RLG cron: wrong key\n");
     }
     require APP_DIR . '/cron_tasks.php';
     header('Content-Type: text/plain');
