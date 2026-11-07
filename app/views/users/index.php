@@ -1,7 +1,7 @@
 <div class="page-head">
     <div>
         <h1>Staff accounts</h1>
-        <p class="muted">Administrator sees everything. Bootcamp manager sees and edits everything, including prices. Support sees everything except finances.</p>
+        <p class="muted">Administrator sees everything. Bootcamp manager creates and edits bootcamps, teams and inventory and approves extra equipment. Support handles tickets, rooms and deliveries.</p>
     </div>
 </div>
 

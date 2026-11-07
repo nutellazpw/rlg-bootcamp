@@ -94,25 +94,6 @@ $action = $isNew ? url('/bootcamps/new') : url('/bootcamps/' . (int) $b['id'] . 
         <p class="hint">Chair count decides how many chairs the team can configure (armrests). Monitors are separate items per refresh rate — add new types in Inventory.</p>
     </section>
 
-    <section class="card card-finance">
-        <h2 class="card-title">Price <span class="tag tag-lock">Manager only</span></h2>
-        <div class="form-grid">
-            <label class="field">
-                <span>Price</span>
-                <input type="text" name="price" value="<?= e($v('price')) ?>" inputmode="decimal" placeholder="0.00">
-            </label>
-            <label class="field">
-                <span>Currency</span>
-                <select name="currency">
-                    <?php foreach (['EUR', 'RSD', 'USD'] as $c): ?><option<?= selected($c, $v('currency', 'EUR')) ?>><?= $c ?></option><?php endforeach; ?>
-                </select>
-            </label>
-        </div>
-        <label class="field">
-            <span>Finance notes <small>(payment terms, deposit, invoice details…)</small></span>
-            <textarea name="finance_notes" rows="3"><?= e($v('finance_notes')) ?></textarea>
-        </label>
-    </section>
 
     <section class="card">
         <h2 class="card-title">Notes</h2>

@@ -25,6 +25,7 @@ return [
     ['POST', '/bootcamps/(\d+)/extras', 'bootcamps@add_extra'],
     ['POST', '/extras/(\d+)/decide', 'bootcamps@decide_extra'],
     ['POST', '/extras/(\d+)/delivered', 'bootcamps@deliver_extra'],
+    ['POST', '/extras/(\d+)/update', 'bootcamps@update_extra'],
     ['POST', '/api/availability', 'bootcamps@availability'],
 
     ['GET', '/teams', 'teams@index'],

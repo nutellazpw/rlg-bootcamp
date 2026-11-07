@@ -67,7 +67,6 @@ function catalog_equipment_save(?int $id = null): void
         'category' => $cat,
         'spec' => mb_substr((string) input('spec'), 0, 190) ?: null,
         'total_qty' => max(0, input_int('total_qty')),
-        'price_per_day' => input_money('price_per_day'),
         'requestable' => input('requestable') ? 1 : 0,
         'active' => input('active', $id ? '' : '1') ? 1 : 0,
         'sort' => input_int('sort'),
@@ -120,10 +119,7 @@ function catalog_settings(): void
     $me = require_role('admin');
     if (is_post()) {
         $action = (string) input('action');
-        if ($action === 'save') {
-            set_setting('show_extra_prices', input('show_extra_prices') ? '1' : '0');
-            flash('success', 'Settings saved.');
-        } elseif ($action === 'test_telegram') {
+        if ($action === 'test_telegram') {
             $ok = telegram_send('✅ RLG Bootcamp test message from ' . $me['name']);
             $ok ? flash('success', 'Telegram message sent.') : flash('error', 'Telegram failed. Check bot_token and chat_id in app/config.php (see storage/logs/telegram.log).');
         } elseif ($action === 'test_mail') {
@@ -143,7 +139,6 @@ function catalog_settings(): void
     }
     view('catalog/settings', [
         'title' => 'Settings',
-        'showPrices' => setting('show_extra_prices', '0') === '1',
         'lastCron' => setting('last_cron_run'),
         'telegramOn' => config('telegram.bot_token') && config('telegram.chat_id'),
         'mailHost' => config('mail.host') ?: 'PHP mail()',

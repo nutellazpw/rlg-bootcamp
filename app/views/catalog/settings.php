@@ -2,16 +2,6 @@
 
 <div class="grid-2">
     <section class="card">
-        <h2 class="card-title">Client view</h2>
-        <form method="post" action="<?= e(url('/settings')) ?>" class="form">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="save">
-            <label class="check"><input type="checkbox" name="show_extra_prices" value="1"<?= checked($showPrices) ?>><span>Show price per day to teams when they request extra equipment</span></label>
-            <button class="btn btn-sm" type="submit">Save</button>
-        </form>
-    </section>
-
-    <section class="card">
         <h2 class="card-title">System status</h2>
         <dl class="kv">
             <dt>Cron (every minute)</dt>

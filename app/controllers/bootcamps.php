@@ -63,10 +63,6 @@ function bootcamps_save(?array $existing, array $me): array
     if (!array_key_exists($status, BOOTCAMP_STATUSES)) {
         $status = 'planned';
     }
-    $price = input_money('price');
-    if (input('price') !== '' && $price === null) {
-        $errors[] = 'Price must be a number.';
-    }
     if ($errors) {
         return [null, $errors];
     }
@@ -77,9 +73,6 @@ function bootcamps_save(?array $existing, array $me): array
         'start_date' => $start,
         'end_date' => $end,
         'status' => $status,
-        'price' => $price,
-        'currency' => in_array(input('currency'), ['EUR', 'RSD', 'USD'], true) ? input('currency') : 'EUR',
-        'finance_notes' => (string) input('finance_notes') ?: null,
         'staff_notes' => (string) input('staff_notes') ?: null,
         'client_info' => (string) input('client_info') ?: null,
         'updated_at' => now(),
@@ -172,7 +165,7 @@ function bootcamps_show(int $id): void
     $b = bootcamp_find($id) ?? not_found();
     $items = bootcamp_items($id);
     $extras = all(
-        'SELECT x.*, e.name AS equipment_name, e.price_per_day AS list_price, u.name AS requested_name, d.name AS decided_name
+        'SELECT x.*, e.name AS equipment_name, u.name AS requested_name, d.name AS decided_name
          FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id
          LEFT JOIN users u ON u.id = x.requested_by LEFT JOIN users d ON d.id = x.decided_by
          WHERE x.bootcamp_id = ? ORDER BY x.requested_at DESC',
@@ -298,7 +291,6 @@ function bootcamps_add_extra(int $id): void
         'requested_by' => $me['id'], 'requested_at' => now(),
         'decided_by' => $me['id'], 'decided_at' => now(),
         'bill_from' => $from, 'bill_to' => $to,
-        'price_per_day' => input_money('price_per_day') ?? $eq['price_per_day'],
     ]);
     $warnings = availability_warnings($from, $to, [(int) $eq['id'] => $qty]);
     if ($warnings) {
@@ -312,7 +304,7 @@ function bootcamps_add_extra(int $id): void
 function bootcamps_decide_extra(int $id): void
 {
     $me = require_role('admin', 'manager');
-    $x = one('SELECT x.*, e.name AS equipment_name, e.price_per_day AS list_price FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id WHERE x.id = ?', [$id]) ?? not_found();
+    $x = one('SELECT x.*, e.name AS equipment_name FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id WHERE x.id = ?', [$id]) ?? not_found();
     $b = bootcamp_find((int) $x['bootcamp_id']) ?? not_found();
     $decision = (string) input('decision');
     $note = (string) input('staff_note') ?: null;
@@ -320,14 +312,13 @@ function bootcamps_decide_extra(int $id): void
         $from = input_date('bill_from') ?? max(date('Y-m-d'), $b['start_date']);
         $to = input_date('bill_to') ?? $b['end_date'];
         if ($to < $from) {
-            flash('error', 'Billing end date is before start date.');
+            flash('error', 'End date is before start date.');
             redirect('/bootcamps/' . $b['id'] . '#extras');
         }
         $qty = max(1, input_int('qty', (int) $x['qty']));
         update('extra_requests', [
             'status' => 'approved', 'qty' => $qty, 'decided_by' => $me['id'], 'decided_at' => now(),
             'bill_from' => $from, 'bill_to' => $to,
-            'price_per_day' => input_money('price_per_day') ?? $x['list_price'],
             'staff_note' => $note,
         ], 'id = ?', [$id]);
         notify(team_user_ids((int) $b['team_id']), 'Request approved: ' . $qty . '× ' . $x['equipment_name'], $note ?? 'We will bring it to your room.', '/my/bootcamp/' . $b['id']);
@@ -341,6 +332,32 @@ function bootcamps_decide_extra(int $id): void
     } elseif ($decision === 'cancel') {
         update('extra_requests', ['status' => 'cancelled', 'decided_by' => $me['id'], 'decided_at' => now()], 'id = ?', [$id]);
         flash('success', 'Removed.');
+    }
+    redirect('/bootcamps/' . $b['id'] . '#extras');
+}
+
+/** Manager edits an approved extra: quantity and the dates it was in the room. */
+function bootcamps_update_extra(int $id): void
+{
+    require_role('admin', 'manager');
+    $x = one('SELECT * FROM extra_requests WHERE id = ?', [$id]) ?? not_found();
+    $b = bootcamp_find((int) $x['bootcamp_id']) ?? not_found();
+    $action = (string) input('action', 'save');
+    if ($action === 'remove') {
+        update('extra_requests', ['status' => 'cancelled', 'decided_at' => now()], 'id = ?', [$id]);
+        flash('success', 'Removed from the log.');
+    } elseif ($action === 'taken_out') {
+        update('extra_requests', ['bill_to' => max(date('Y-m-d'), (string) ($x['bill_from'] ?: $b['start_date']))], 'id = ?', [$id]);
+        flash('success', 'Marked as taken out of the room today.');
+    } else {
+        $from = input_date('bill_from') ?? ($x['bill_from'] ?: $b['start_date']);
+        $to = input_date('bill_to') ?? ($x['bill_to'] ?: $b['end_date']);
+        if ($to < $from) {
+            flash('error', 'End date is before start date.');
+        } else {
+            update('extra_requests', ['qty' => max(1, input_int('qty', (int) $x['qty'])), 'bill_from' => $from, 'bill_to' => $to], 'id = ?', [$id]);
+            flash('success', 'Saved.');
+        }
     }
     redirect('/bootcamps/' . $b['id'] . '#extras');
 }

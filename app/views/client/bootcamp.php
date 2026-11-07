@@ -106,7 +106,7 @@ $chairChanged = count(array_filter($chairs, fn ($c) => $c !== 'keep'));
                     <label class="field"><span>Item</span>
                         <select name="equipment_id" required>
                             <?php foreach ($catalog as $eq): ?>
-                                <option value="<?= (int) $eq['id'] ?>"><?= e($eq['name']) ?><?= $showPrices && $eq['price_per_day'] !== null ? ' — ' . e(money($eq['price_per_day'])) . '/day' : '' ?></option>
+                                <option value="<?= (int) $eq['id'] ?>"><?= e($eq['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </label>
@@ -114,7 +114,7 @@ $chairChanged = count(array_filter($chairs, fn ($c) => $c !== 'keep'));
                 </div>
                 <label class="field"><span>Note <small>(optional)</small></span><input type="text" name="note" maxlength="500" placeholder="e.g. for the coach, from tomorrow"></label>
                 <button class="btn btn-sm" type="submit">Request</button>
-                <p class="hint">Extra equipment is charged per day. The bootcamp manager confirms each request.</p>
+                <p class="hint">The bootcamp manager confirms each request.</p>
             </form>
         <?php elseif ($open): ?>
             <p class="muted small">Contact support if you need extra equipment.</p>

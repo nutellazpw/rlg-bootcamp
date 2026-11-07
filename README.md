@@ -1,13 +1,14 @@
 # RLG Bootcamp — guest.relog.gg
 
 Web aplikacija za bootcampove Relog Medije: ekipe (klijenti) i interno osoblje (administrator, bootcamp manager, podrška).
-Čist PHP 8.1+ i MySQL, bez frameworka i bez Composera. Radi na običnom cPanel hostingu.
+Svetla i tamna tema (prekidač ☀/☾ u headeru, pamti se po uređaju). Čist PHP 8.1+ i MySQL, bez frameworka i bez Composera. Radi na običnom cPanel hostingu.
 
 ## Šta radi
 
 **Osoblje**
 - Dashboard: bootcampovi koji su trenutno u toku, predstojeći, otvoreni tiketi, zahtevi za dodatnu opremu, upozorenja za inventar
-- Bootcampovi: ekipa, hotel, soba (može naknadno), period, status, oprema po stavkama (PC, monitori po Hz, stolovi, stolice…), cena i finansijske beleške, info za ekipu, interne beleške
+- Bootcampovi: ekipa, hotel, soba (može naknadno), period, status, oprema po stavkama (PC, monitori po Hz, stolovi, stolice…), info za ekipu, interne beleške
+- Log dodatne opreme po bootcampu: šta je, koliko komada i od kog do kog dana je bilo u sobi (može da se izmeni, ili „Taken out today“)
 - Kalendar po mesecima, boje po hotelu
 - Inventar: ukupne količine. Upozorava kad rezervacije ili odobreni dodaci pređu stanje u nekom periodu (i uživo u formi)
 - Hoteli, pića (lista iz koje ekipe biraju), nalozi osoblja, podešavanja
@@ -17,7 +18,6 @@ Web aplikacija za bootcampove Relog Medije: ekipe (klijenti) i interno osoblje (
 
 | | Administrator | Bootcamp manager | Podrška | Klijent |
 |---|---|---|---|---|
-| Vidi cene / finansije | ✅ | ✅ | ❌ | ❌ |
 | Pravi/menja bootcampove, ekipe, inventar | ✅ | ✅ | ❌ (samo sobu i status) | ❌ |
 | Odobrava dodatnu opremu | ✅ | ✅ | ❌ (označava isporuku) | ❌ |
 | Tiketi | ✅ | ✅ | ✅ | samo svoji |
@@ -27,7 +27,7 @@ Web aplikacija za bootcampove Relog Medije: ekipe (klijenti) i interno osoblje (
 - Vidi svoj bootcamp: hotel, sobu, datume, opremu, info (Wi-Fi itd.) — bez cene
 - Bira pića za frižider i traži dopunu (dopuna otvara tiket „Drinks refill“)
 - Za svaku stolicu bira ručke: obe ostaju / bez obe / bez leve / bez desne
-- Traži dodatnu opremu (monitor, kameru…). Manager odobrava i bira od kog do kog dana se naplaćuje i cenu po danu
+- Traži dodatnu opremu (monitor, kameru…). Manager odobrava i upisuje od kog do kog dana je u sobi
 - Otvara tikete i dopisuje se sa podrškom
 
 ## Notifikacije
@@ -58,7 +58,7 @@ Manager i administrator dobijaju sve tikete. Klijent dobija notifikaciju kad pod
    `https://api.telegram.org/bot<TOKEN>/getUpdates` → `chat.id` (počinje sa `-100…`). Upiši oba u config.
 8. U *Setup → Settings* testiraj email, Telegram i cron.
 
-Prvi koraci posle instalacije: *Inventory* (upiši količine i cene po danu za dodatke) → *Hotels* → *Teams* (pozivnica ide na email klijenta) → *New bootcamp*.
+Prvi koraci posle instalacije: *Inventory* (upiši količine i označi šta ekipe smeju da traže kao dodatak) → *Hotels* → *Teams* (pozivnica ide na email klijenta) → *New bootcamp*.
 
 ## Struktura
 

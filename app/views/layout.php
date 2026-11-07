@@ -49,13 +49,15 @@ if ($staff) {
 <link rel="apple-touch-icon" href="<?= e(asset('img/icon-192.png')) ?>">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>(function(){var t='light';try{t=localStorage.getItem('rlg-theme')||'light'}catch(e){}document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light'?'#ffffff':'#0b0b0b';})();</script>
 <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
 </head>
 <body class="<?= $staff ? 'is-staff' : 'is-client' ?>">
 <header class="topbar">
     <div class="topbar-inner">
         <a class="brand" href="<?= e(url('/')) ?>">
-            <img src="<?= e(asset('img/logo.svg')) ?>" alt="Relog Media" width="150" height="34">
+            <img class="logo-on-dark" src="<?= e(asset('img/logo.svg')) ?>" alt="Relog Media" width="150" height="34">
+            <img class="logo-on-light" src="<?= e(asset('img/logo-dark.svg')) ?>" alt="Relog Media" width="150" height="34">
             <span class="brand-tag">Bootcamp</span>
         </a>
         <nav class="mainnav" id="mainnav">
@@ -78,6 +80,10 @@ if ($staff) {
             </div>
         </nav>
         <div class="topbar-actions">
+            <button type="button" class="icon-btn theme-toggle" data-theme-toggle title="Light / dark mode" aria-label="Switch light / dark mode">
+                <svg class="theme-icon-moon" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 14.5A9 9 0 0 1 9.5 3a9 9 0 1 0 11.5 11.5Z"/></svg>
+                <svg class="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>
+            </button>
             <a class="icon-btn" href="<?= e(url('/notifications')) ?>" title="Notifications" aria-label="Notifications">
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
                 <span class="dot-count" id="notif-count"<?= $unread ? '' : ' hidden' ?>><?= $unread > 99 ? '99+' : (int) $unread ?></span>

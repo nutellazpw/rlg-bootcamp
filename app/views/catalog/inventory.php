@@ -1,4 +1,4 @@
-<?php $edit = can_manage(); $fin = can_finance(); ?>
+<?php $edit = can_manage(); ?>
 <div class="page-head">
     <div>
         <h1>Inventory</h1>
@@ -16,7 +16,6 @@
                 <th class="num">In stock</th>
                 <th class="num" title="Booked today">Today</th>
                 <th class="num" title="Highest daily usage in the next 30 days">Peak 30d</th>
-                <?php if ($fin): ?><th class="num">Price / day</th><?php endif; ?>
                 <th title="Clients can request it as extra equipment">Client can request</th>
                 <?php if ($edit): ?><th>Active</th><th></th><?php endif; ?>
             </tr>
@@ -44,9 +43,6 @@
                 <?php endif; ?>
                 <td class="num"><?= $today ?></td>
                 <td class="num<?= $over ? ' text-danger' : '' ?>"><?= $peak ?><?= $over ? ' ⚠' : '' ?></td>
-                <?php if ($fin): ?>
-                    <td class="num"><?php if ($edit): ?><input form="<?= $fid ?>" type="text" name="price_per_day" value="<?= e($r['price_per_day']) ?>" inputmode="decimal" class="input-num" placeholder="—"><?php else: ?><?= e(money($r['price_per_day'])) ?><?php endif; ?></td>
-                <?php endif; ?>
                 <td><?php if ($edit): ?><label class="switch"><input form="<?= $fid ?>" type="checkbox" name="requestable" value="1"<?= checked((bool) $r['requestable']) ?>><span></span></label><?php else: ?><?= $r['requestable'] ? 'Yes' : '—' ?><?php endif; ?></td>
                 <?php if ($edit): ?>
                     <td><label class="switch"><input form="<?= $fid ?>" type="checkbox" name="active" value="1"<?= checked((bool) $r['active']) ?>><span></span></label></td>
@@ -71,7 +67,6 @@
             <label class="field"><span>In stock</span><input type="number" name="total_qty" value="0" min="0"></label>
         </div>
         <div class="form-grid form-grid-4">
-            <label class="field"><span>Price / day <small>(for extras)</small></span><input type="text" name="price_per_day" inputmode="decimal"></label>
             <label class="check check-field"><input type="checkbox" name="requestable" value="1"><span>Clients can request it as extra</span></label>
         </div>
         <button class="btn btn-sm" type="submit">Add item</button>

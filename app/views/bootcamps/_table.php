@@ -6,7 +6,6 @@
             <th>Hotel · Room</th>
             <th>Dates</th>
             <th>Status</th>
-            <?php if (can_finance()): ?><th class="num">Price</th><?php endif; ?>
         </tr>
     </thead>
     <tbody>
@@ -16,7 +15,6 @@
                 <td class="stack-muted"><?= e($b['hotel_name']) ?> · <?= $b['room'] ? e($b['room']) : '<span class="text-warn">no room</span>' ?></td>
                 <td class="nowrap stack-muted"><?= e(fmt_range($b['start_date'], $b['end_date'])) ?> <span class="muted">(<?= days_between($b['start_date'], $b['end_date']) ?>d)</span></td>
                 <td class="stack-corner"><?= status_badge($b['status'], BOOTCAMP_STATUSES) ?></td>
-                <?php if (can_finance()): ?><td class="num nowrap stack-muted"><?= e(money($b['price'], $b['currency'])) ?></td><?php endif; ?>
             </tr>
         <?php endforeach; ?>
     </tbody>

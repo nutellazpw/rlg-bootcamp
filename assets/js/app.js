@@ -47,6 +47,15 @@
     $$('.nav-group.open').forEach((g) => g.classList.remove('open'));
   });
 
+  // Light / dark theme (saved per device)
+  $$('[data-theme-toggle]').forEach((b) => b.addEventListener('click', () => {
+    const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    store.set('rlg-theme', t);
+    const m = $('meta[name="theme-color"]');
+    if (m) m.content = t === 'light' ? '#ffffff' : '#0b0b0b';
+  }));
+
   // Clickable table rows
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => {
     if (e.target.closest('a,button,input,select,label,form')) return;

@@ -42,7 +42,6 @@ function client_render(array $u, array $b): void
         'drinkIds' => bootcamp_drink_ids($id),
         'extras' => all('SELECT x.*, e.name AS equipment_name FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id WHERE x.bootcamp_id = ? AND x.status <> "cancelled" ORDER BY x.requested_at DESC', [$id]),
         'catalog' => all('SELECT * FROM equipment WHERE active = 1 AND requestable = 1 ORDER BY category, sort, name'),
-        'showPrices' => setting('show_extra_prices', '0') === '1',
         'tickets' => all("SELECT * FROM tickets WHERE bootcamp_id = ? ORDER BY status = 'resolved', updated_at DESC LIMIT 5", [$id]),
         'others' => all("SELECT b.id, b.start_date, b.end_date, b.status, h.name AS hotel_name FROM bootcamps b JOIN hotels h ON h.id = b.hotel_id WHERE b.team_id = ? AND b.id <> ? AND b.status <> 'cancelled' ORDER BY b.start_date DESC", [(int) $u['team_id'], $id]),
         'open' => bootcamp_is_open($b),

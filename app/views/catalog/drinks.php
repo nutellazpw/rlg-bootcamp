@@ -2,7 +2,7 @@
 <div class="page-head">
     <div>
         <h1>Drinks</h1>
-        <p class="muted">Teams choose from this list what they want in the room fridge. Drinks are included in the bootcamp price.</p>
+        <p class="muted">Teams choose from this list what they want in the room fridge. Drinks are included in the bootcamp.</p>
     </div>
 </div>
 <div class="layout-side">

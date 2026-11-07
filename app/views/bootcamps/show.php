@@ -1,5 +1,4 @@
 <?php
-$fin = can_finance();
 $manage = can_manage();
 $chairSummary = [];
 foreach ($chairs as $no => $opt) {
@@ -107,64 +106,96 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
             </details>
         </section>
 
+        <?php
+        $approved = array_values(array_filter($extras, fn ($x) => $x['status'] === 'approved'));
+        $pending = array_values(array_filter($extras, fn ($x) => $x['status'] === 'pending'));
+        $closed = array_values(array_filter($extras, fn ($x) => in_array($x['status'], ['rejected', 'cancelled'], true)));
+        ?>
         <section class="card" id="extras">
-            <h2 class="card-title">Extra equipment</h2>
-            <?php if (!$extras): ?>
-                <p class="muted">No extra requests.</p>
-            <?php else: ?>
-                <div class="extras">
-                    <?php foreach ($extras as $x): ?>
-                        <div class="extra extra-<?= e($x['status']) ?>">
-                            <div class="extra-head">
-                                <div>
-                                    <strong><?= (int) $x['qty'] ?>× <?= e($x['equipment_name']) ?></strong>
-                                    <?= status_badge($x['status'], EXTRA_STATUSES) ?>
-                                    <?php if ($x['status'] === 'approved'): ?>
-                                        <?= $x['delivered_at'] ? '<span class="badge badge-completed">Delivered</span>' : '<span class="badge badge-pending">Not delivered</span>' ?>
-                                    <?php endif; ?>
-                                </div>
-                                <span class="muted small"><?= e($x['requested_name'] ?? '') ?> · <?= e(fmt_dt($x['requested_at'])) ?></span>
-                            </div>
-                            <?php if ($x['note']): ?><p class="extra-note">“<?= e($x['note']) ?>”</p><?php endif; ?>
-                            <?php if ($x['status'] === 'approved' || $x['status'] === 'rejected'): ?>
-                                <p class="small muted">
-                                    <?= $x['status'] === 'approved' ? 'Approved' : 'Declined' ?> by <?= e($x['decided_name'] ?? '—') ?>
-                                    <?php if ($x['status'] === 'approved'): ?>
-                                        · from <?= e(fmt_date($x['bill_from'])) ?> to <?= e(fmt_date($x['bill_to'])) ?>
-                                        <?php if ($fin): ?> · <span class="fin"><?= e(money($x['price_per_day'], $b['currency'])) ?>/day</span><?php endif; ?>
-                                    <?php endif; ?>
-                                    <?php if ($x['staff_note']): ?> · <?= e($x['staff_note']) ?><?php endif; ?>
-                                </p>
-                            <?php endif; ?>
+            <div class="card-head">
+                <h2 class="card-title">Extra equipment</h2>
+                <?php if ($approved): ?><span class="muted small"><?= count($approved) ?> in log</span><?php endif; ?>
+            </div>
 
-                            <?php if ($x['status'] === 'pending' && $manage): ?>
-                                <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/decide')) ?>" class="decide-form">
-                                    <?= csrf_field() ?>
-                                    <div class="form-grid form-grid-4">
-                                        <label class="field"><span>Qty</span><input type="number" name="qty" value="<?= (int) $x['qty'] ?>" min="1"></label>
-                                        <label class="field"><span>Charge from</span><input type="date" name="bill_from" value="<?= e(max(date('Y-m-d'), $b['start_date'])) ?>" min="<?= e($b['start_date']) ?>" max="<?= e($b['end_date']) ?>"></label>
-                                        <label class="field"><span>Until</span><input type="date" name="bill_to" value="<?= e($b['end_date']) ?>" min="<?= e($b['start_date']) ?>" max="<?= e($b['end_date']) ?>"></label>
-                                        <label class="field"><span>Price / day (<?= e($b['currency']) ?>)</span><input type="text" name="price_per_day" value="<?= e($x['list_price']) ?>" inputmode="decimal"></label>
-                                    </div>
-                                    <label class="field"><span>Note to team <small>(optional)</small></span><input type="text" name="staff_note" maxlength="255"></label>
-                                    <div class="btn-row">
-                                        <button class="btn btn-sm" name="decision" value="approve">Approve</button>
-                                        <button class="btn btn-sm btn-danger" name="decision" value="reject">Decline</button>
-                                    </div>
-                                </form>
-                            <?php elseif ($x['status'] === 'pending'): ?>
-                                <p class="small muted">Waiting for the bootcamp manager to approve.</p>
-                            <?php elseif ($x['status'] === 'approved'): ?>
-                                <div class="btn-row">
-                                    <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/delivered')) ?>"><?= csrf_field() ?><button class="btn btn-sm btn-ghost"><?= $x['delivered_at'] ? 'Mark not delivered' : 'Mark delivered' ?></button></form>
-                                    <?php if ($manage): ?>
-                                        <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/decide')) ?>" data-confirm="Remove this extra from the bootcamp?"><?= csrf_field() ?><button class="btn btn-sm btn-ghost" name="decision" value="cancel">Remove</button></form>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
+            <?php if (!$extras): ?>
+                <p class="muted">No extra equipment.</p>
+            <?php endif; ?>
+
+            <?php foreach ($pending as $x): ?>
+                <div class="extra extra-pending">
+                    <div class="extra-head">
+                        <div><strong><?= (int) $x['qty'] ?>× <?= e($x['equipment_name']) ?></strong> <?= status_badge('pending', EXTRA_STATUSES) ?></div>
+                        <span class="muted small"><?= e($x['requested_name'] ?? '') ?> · <?= e(fmt_dt($x['requested_at'])) ?></span>
+                    </div>
+                    <?php if ($x['note']): ?><p class="extra-note">“<?= e($x['note']) ?>”</p><?php endif; ?>
+                    <?php if ($manage): ?>
+                        <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/decide')) ?>" class="decide-form">
+                            <?= csrf_field() ?>
+                            <div class="form-grid form-grid-3">
+                                <label class="field"><span>Qty</span><input type="number" name="qty" value="<?= (int) $x['qty'] ?>" min="1"></label>
+                                <label class="field"><span>In room from</span><input type="date" name="bill_from" value="<?= e(max(date('Y-m-d'), $b['start_date'])) ?>" min="<?= e($b['start_date']) ?>" max="<?= e($b['end_date']) ?>"></label>
+                                <label class="field"><span>Until</span><input type="date" name="bill_to" value="<?= e($b['end_date']) ?>" min="<?= e($b['start_date']) ?>" max="<?= e($b['end_date']) ?>"></label>
+                            </div>
+                            <label class="field"><span>Note to team <small>(optional)</small></span><input type="text" name="staff_note" maxlength="255"></label>
+                            <div class="btn-row">
+                                <button class="btn btn-sm" name="decision" value="approve">Approve</button>
+                                <button class="btn btn-sm btn-danger" name="decision" value="reject">Decline</button>
+                            </div>
+                        </form>
+                    <?php else: ?>
+                        <p class="small muted">Waiting for the bootcamp manager to approve.</p>
+                    <?php endif; ?>
                 </div>
+            <?php endforeach; ?>
+
+            <?php if ($approved): ?>
+                <div class="table-wrap extras-log">
+                    <table class="table table-stack">
+                        <thead><tr><th>Item</th><th class="num">Qty</th><th>In room</th><th class="num">Days</th><th>Delivered</th><th></th></tr></thead>
+                        <tbody>
+                        <?php foreach ($approved as $x):
+                            $from = $x['bill_from'] ?: $b['start_date'];
+                            $to = $x['bill_to'] ?: $b['end_date'];
+                            ?>
+                            <tr>
+                                <td><strong><?= e($x['equipment_name']) ?></strong><?php if ($x['note']): ?><div class="small muted">“<?= e($x['note']) ?>”</div><?php endif; ?>
+                                    <div class="small muted"><?= $x['requested_name'] ? 'Requested by ' . e($x['requested_name']) : '' ?><?= $x['decided_name'] ? ' · approved by ' . e($x['decided_name']) : '' ?></div></td>
+                                <td class="num stack-muted"><?= (int) $x['qty'] ?>×</td>
+                                <td class="nowrap stack-muted"><?= e(fmt_date($from, 'd M')) ?> → <?= e(fmt_date($to, 'd M')) ?></td>
+                                <td class="num stack-muted"><?= days_between($from, $to) ?> d</td>
+                                <td class="stack-corner"><?= $x['delivered_at'] ? '<span class="badge badge-completed">Delivered</span>' : '<span class="badge badge-pending">Not yet</span>' ?></td>
+                                <td class="nowrap">
+                                    <div class="btn-row">
+                                        <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/delivered')) ?>"><?= csrf_field() ?><button class="btn btn-xs btn-ghost"><?= $x['delivered_at'] ? 'Undo delivered' : 'Mark delivered' ?></button></form>
+                                        <?php if ($manage): ?>
+                                            <details class="details-inline">
+                                                <summary class="btn btn-xs btn-ghost">Edit</summary>
+                                                <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/update')) ?>" class="mini-form">
+                                                    <?= csrf_field() ?>
+                                                    <label class="field"><span>Qty</span><input type="number" name="qty" value="<?= (int) $x['qty'] ?>" min="1"></label>
+                                                    <label class="field"><span>From</span><input type="date" name="bill_from" value="<?= e($from) ?>"></label>
+                                                    <label class="field"><span>Until</span><input type="date" name="bill_to" value="<?= e($to) ?>"></label>
+                                                    <div class="btn-row">
+                                                        <button class="btn btn-xs" name="action" value="save">Save</button>
+                                                        <?php if ($to > date('Y-m-d') && date('Y-m-d') >= $from): ?><button class="btn btn-xs btn-ghost" name="action" value="taken_out">Taken out today</button><?php endif; ?>
+                                                        <button class="btn btn-xs btn-danger" name="action" value="remove" formnovalidate>Delete</button>
+                                                    </div>
+                                                </form>
+                                            </details>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($closed): ?>
+                <p class="small muted closed-extras">Declined / cancelled:
+                    <?php foreach ($closed as $i => $x): ?><?= $i ? ', ' : '' ?><?= (int) $x['qty'] ?>× <?= e($x['equipment_name']) ?> (<?= e(EXTRA_STATUSES[$x['status']]) ?>)<?php endforeach; ?>
+                </p>
             <?php endif; ?>
 
             <?php if ($manage && bootcamp_is_open($b)): ?>
@@ -179,13 +210,10 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
                                 </select>
                             </label>
                             <label class="field"><span>Qty</span><input type="number" name="qty" value="1" min="1"></label>
-                            <label class="field"><span>Charge from</span><input type="date" name="bill_from" value="<?= e(max(date('Y-m-d'), $b['start_date'])) ?>"></label>
+                            <label class="field"><span>In room from</span><input type="date" name="bill_from" value="<?= e(max(date('Y-m-d'), $b['start_date'])) ?>"></label>
                             <label class="field"><span>Until</span><input type="date" name="bill_to" value="<?= e($b['end_date']) ?>"></label>
                         </div>
-                        <div class="form-grid">
-                            <label class="field"><span>Price / day <small>(empty = list price)</small></span><input type="text" name="price_per_day" inputmode="decimal"></label>
-                            <label class="field"><span>Note</span><input type="text" name="note" maxlength="255"></label>
-                        </div>
+                        <label class="field"><span>Note</span><input type="text" name="note" maxlength="255"></label>
                         <button class="btn btn-sm" type="submit">Add</button>
                     </form>
                 </details>
@@ -194,13 +222,6 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
     </div>
 
     <aside class="col-side">
-        <?php if ($fin): ?>
-            <section class="card card-finance">
-                <h2 class="card-title">Price <span class="tag tag-lock">Manager only</span></h2>
-                <div class="big-number"><?= e(money($b['price'], $b['currency'])) ?></div>
-                <?php if ($b['finance_notes']): ?><p class="small"><?= nl2br_e($b['finance_notes']) ?></p><?php endif; ?>
-            </section>
-        <?php endif; ?>
 
         <section class="card">
             <div class="card-head"><h2 class="card-title">Team accounts</h2><a class="link" href="<?= e(url('/teams/' . $b['team_id'])) ?>">Team →</a></div>
