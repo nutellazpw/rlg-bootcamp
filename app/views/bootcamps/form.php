@@ -65,6 +65,10 @@ $action = $isNew ? url('/bootcamps/new') : url('/bootcamps/' . (int) $b['id'] . 
                 <span>End date</span>
                 <input type="date" name="end_date" value="<?= e($v('end_date')) ?>" required>
             </label>
+            <label class="field">
+                <span>Room ready by <small>(latest date &amp; time the setup must be finished)</small></span>
+                <input type="datetime-local" name="ready_by" value="<?= e($v('ready_by') ? date('Y-m-d\TH:i', strtotime(str_replace('T', ' ', (string) $v('ready_by')))) : '') ?>" required>
+            </label>
         </div>
     </section>
 

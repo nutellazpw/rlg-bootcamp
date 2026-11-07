@@ -17,6 +17,15 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
             · <?= e(fmt_range($b['start_date'], $b['end_date'])) ?> (<?= days_between($b['start_date'], $b['end_date']) ?> days)
             · <?= status_badge($b['status'], BOOTCAMP_STATUSES) ?>
         </p>
+        <?php if ($b['ready_by']):
+            $mins = (int) floor((strtotime($b['ready_by']) - time()) / 60);
+            $pending = !$b['room_ready_at'] && in_array($b['status'], ['planned', 'active'], true);
+            $state = $b['room_ready_at'] ? 'done' : ($pending && $mins < 0 ? 'late' : ($pending && $mins < 1440 ? 'soon' : '')); ?>
+            <p class="ready-by <?= $state ?>">Room ready by <strong><?= e(date('D d M, H:i', strtotime($b['ready_by']))) ?></strong>
+                <?php if ($state === 'done'): ?> — ready since <?= e(date('d M H:i', strtotime($b['room_ready_at']))) ?>
+                <?php elseif ($state === 'late'): ?> — overdue
+                <?php elseif ($state === 'soon'): ?> — <?= $mins >= 60 ? floor($mins / 60) . ' h ' : '' ?><?= $mins % 60 ?> min left<?php endif; ?></p>
+        <?php endif; ?>
     </div>
     <div class="head-actions">
         <?php if ($manage): ?>
@@ -52,7 +61,7 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
                 </label>
                 <button class="btn btn-sm" type="submit">Update</button>
             </form>
-            <p class="hint">The team gets a notification when the room is assigned or the status changes to “Room ready”.</p>
+            <p class="hint">The team is notified when the room is assigned. “Room ready” notifies staff and managers only.</p>
         </section>
 
         <?php
@@ -71,7 +80,7 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
                     <input type="hidden" name="room" value="<?= e($b['room']) ?>">
                     <input type="hidden" name="status" value="ready">
                     <span>Everything is set up.</span>
-                    <button class="btn btn-sm" type="submit">Mark “Room ready” &amp; notify team</button>
+                    <button class="btn btn-sm" type="submit">Mark “Room ready” &amp; notify staff</button>
                 </form>
             <?php endif; ?>
         </section>

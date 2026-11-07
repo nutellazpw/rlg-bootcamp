@@ -63,6 +63,13 @@ function bootcamps_save(?array $existing, array $me): array
     if (!array_key_exists($status, BOOTCAMP_STATUSES)) {
         $status = 'planned';
     }
+    $readyRaw = str_replace('T', ' ', (string) input('ready_by'));
+    $readyTs = $readyRaw !== '' ? strtotime($readyRaw) : false;
+    if ($readyTs === false) {
+        $errors[] = 'Enter the date and time by which the room must be ready.';
+    } elseif ($start && date('Y-m-d', $readyTs) > $start) {
+        $errors[] = 'The room must be ready on or before the start date.';
+    }
     if ($errors) {
         return [null, $errors];
     }
@@ -72,6 +79,7 @@ function bootcamps_save(?array $existing, array $me): array
         'room' => mb_substr((string) input('room'), 0, 60) ?: null,
         'start_date' => $start,
         'end_date' => $end,
+        'ready_by' => date('Y-m-d H:i:00', $readyTs),
         'status' => $status,
         'staff_notes' => (string) input('staff_notes') ?: null,
         'client_info' => (string) input('client_info') ?: null,
@@ -116,6 +124,9 @@ function bootcamps_save(?array $existing, array $me): array
         if ((string) $existing['room'] !== (string) $data['room']) {
             $changes[] = 'room ' . ($existing['room'] ?: '—') . ' → ' . ($data['room'] ?: '—');
         }
+        if ((string) $existing['ready_by'] !== $data['ready_by']) {
+            $changes[] = 'ready by → ' . date('d M H:i', $readyTs);
+        }
         if ($existing['start_date'] !== $start || $existing['end_date'] !== $end) {
             $changes[] = 'dates ' . fmt_range($existing['start_date'], $existing['end_date']) . ' → ' . fmt_range($start, $end);
         }
@@ -151,6 +162,16 @@ function bootcamps_save(?array $existing, array $me): array
         } elseif ($existing['start_date'] !== $start || $existing['end_date'] !== $end || (int) $existing['hotel_id'] !== $hotelId || ($existing['room'] && $existing['room'] !== $data['room'])) {
             notify($team, 'Your bootcamp details changed', fmt_range($start, $end) . ($data['room'] ? ' · room ' . $data['room'] : ''), '/my/bootcamp/' . $id);
         }
+    }
+
+    if ($existing && $status === 'ready' && $existing['status'] !== 'ready') {
+        notify_room_ready(bootcamp_find($id), $data['room'], $me);
+    } elseif ($existing && $status === 'planned' && $existing['room_ready_at']) {
+        update('bootcamps', ['room_ready_at' => null], 'id = ?', [$id]);
+    }
+    // A new deadline means the setup reminders should fire again
+    if ($existing && (string) $existing['ready_by'] !== $data['ready_by']) {
+        q("DELETE FROM bootcamp_reminders WHERE bootcamp_id = ? AND kind LIKE 'setup_%'", [$id]);
     }
 
     $warnings = $status === 'cancelled' ? [] : availability_warnings($start, $end, $wanted, $id);
@@ -266,7 +287,9 @@ function bootcamps_quick(int $id): void
         notify($team, 'Your room changed', $b['hotel_name'] . ' · room ' . $room, '/my/bootcamp/' . $id);
     }
     if ($status === 'ready' && $b['status'] !== 'ready') {
-        notify($team, 'Your bootcamp room is ready', $b['hotel_name'] . ($room ? ' · room ' . $room : ''), '/my/bootcamp/' . $id);
+        notify_room_ready($b, $room, $me);
+    } elseif ($status === 'planned' && $b['room_ready_at']) {
+        update('bootcamps', ['room_ready_at' => null], 'id = ?', [$id]);
     }
     flash('success', 'Updated.');
     redirect('/bootcamps/' . $id);

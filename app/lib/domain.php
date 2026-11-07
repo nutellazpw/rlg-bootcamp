@@ -217,6 +217,21 @@ function upcoming_inventory_warnings(int $days = 60): array
     return $out;
 }
 
+/** Room marked ready: tell staff and managers (not the team). */
+function notify_room_ready(array $b, ?string $room, array $actor): void
+{
+    update('bootcamps', ['room_ready_at' => now()], 'id = ?', [$b['id']]);
+    log_activity((int) $b['id'], 'Room marked ready', $actor);
+    $ready = ($b['ready_by'] ?? null) ? ' (deadline ' . date('d M H:i', strtotime($b['ready_by'])) . ')' : '';
+    notify_staff(
+        'Room ready: ' . $b['team_name'],
+        $b['hotel_name'] . ($room ? ' · room ' . $room : '') . ' · by ' . $actor['name'] . $ready,
+        '/bootcamps/' . $b['id'],
+        true,
+        (int) $actor['id']
+    );
+}
+
 /** Move statuses forward by date: planned/ready → active on start day, active → completed after end day. */
 function auto_advance_bootcamps(): void
 {
@@ -536,13 +551,6 @@ function send_bootcamp_reminders(): int
             $sent++;
         }
 
-        if ($days === 0 && $hour >= 9) {
-            [$done, $total] = checklist_progress($id, 'setup');
-            if (($total === 0 || $done < $total) && reminder_once($id, 'setup_due')) {
-                notify_staff('Room setup not finished: ' . $b['team_name'], 'Starts today · ' . $b['hotel_name'] . ($b['room'] ? ' · room ' . $b['room'] : '') . " · checklist $done/$total", '/bootcamps/' . $id . '#checklist');
-                $sent++;
-            }
-        }
     }
 
     // Feedback request the day after the bootcamp ends
@@ -565,6 +573,52 @@ function send_bootcamp_reminders(): int
             ));
         }
         $sent++;
+    }
+    return $sent;
+}
+
+/**
+ * Room-ready deadline reminders for staff: 24h before, 3h before, and when overdue.
+ * Respects the quiet hours from config (reminders.quiet_from / quiet_to).
+ */
+function send_setup_deadline_reminders(): int
+{
+    $hour = (int) date('G');
+    $qf = (int) config('reminders.quiet_from', 0);
+    $qt = (int) config('reminders.quiet_to', 7);
+    if ($qf < $qt ? ($hour >= $qf && $hour < $qt) : ($hour >= $qf || $hour < $qt)) {
+        return 0;
+    }
+    $rows = all(
+        "SELECT b.*, t.name AS team_name, h.name AS hotel_name FROM bootcamps b JOIN teams t ON t.id = b.team_id JOIN hotels h ON h.id = b.hotel_id
+         WHERE b.ready_by IS NOT NULL AND b.room_ready_at IS NULL AND b.status IN ('planned','ready','active')
+           AND b.ready_by <= (NOW() + INTERVAL 24 HOUR) AND b.ready_by >= (NOW() - INTERVAL 24 HOUR)"
+    );
+    $sent = 0;
+    foreach ($rows as $b) {
+        $id = (int) $b['id'];
+        if ($b['status'] === 'ready') {
+            continue;
+        }
+        $mins = (int) floor((strtotime($b['ready_by']) - time()) / 60);
+        [$done, $total] = checklist_progress($id, 'setup');
+        $where = $b['hotel_name'] . ($b['room'] ? ' · room ' . $b['room'] : ' · no room yet') . " · checklist $done/$total";
+        $deadline = date('D H:i', strtotime($b['ready_by']));
+        if ($mins <= 0) {
+            if (reminder_once($id, 'setup_late')) {
+                notify_staff('⚠ Room NOT ready: ' . $b['team_name'], 'Deadline was ' . $deadline . ' · ' . $where, '/bootcamps/' . $id . '#checklist');
+                $sent++;
+            }
+        } elseif ($mins <= 180) {
+            if (reminder_once($id, 'setup_3h')) {
+                $left = $mins >= 60 ? floor($mins / 60) . ' h ' . ($mins % 60) . ' min' : $mins . ' min';
+                notify_staff('Room setup due in ' . $left . ': ' . $b['team_name'], 'Ready by ' . $deadline . ' · ' . $where, '/bootcamps/' . $id . '#checklist');
+                $sent++;
+            }
+        } elseif (reminder_once($id, 'setup_24h')) {
+            notify_staff('Room setup due ' . $deadline . ': ' . $b['team_name'], $where, '/bootcamps/' . $id . '#checklist');
+            $sent++;
+        }
     }
     return $sent;
 }

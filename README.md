@@ -7,17 +7,17 @@ Svetla i tamna tema (prekidač ☀/☾ u headeru, pamti se po uređaju). Čist P
 
 **Osoblje**
 - Dashboard: bootcampovi koji su trenutno u toku, predstojeći, otvoreni tiketi, zahtevi za dodatnu opremu, upozorenja za inventar
-- Bootcampovi: ekipa, hotel, soba (može naknadno), period, status, oprema po stavkama (PC, monitori po Hz, stolovi, stolice…), info za ekipu, interne beleške
+- Bootcampovi: ekipa, hotel, soba (može naknadno), period, **rok do kad soba mora biti spremna (dan i vreme)**, status, oprema po stavkama (PC, monitori po Hz, stolovi, stolice…), info za ekipu, interne beleške
 - Log dodatne opreme po bootcampu: šta je, koliko komada i od kog do kog dana je bilo u sobi (može da se izmeni, ili „Taken out today“)
 - Kalendar po mesecima, boje po hotelu
 - Inventar: ukupne količine. Upozorava kad rezervacije ili odobreni dodaci pređu stanje u nekom periodu (i uživo u formi)
 - Hoteli, pića (lista iz koje ekipe biraju), nalozi osoblja, podešavanja
 - Tiketi: chat sa ekipom, statusi, dodela radniku
-- Čekliste (samo osoblje): *Room setup* pre dolaska i *Pickup & check-out* posle — stavke se prave automatski iz rezervacije (oprema, dodaci, stolice, pića), mogu se dodati i svoje. Kad je setup gotov, jedno dugme prebacuje status u „Room ready“ i obaveštava ekipu
+- Čekliste (samo osoblje): *Room setup* pre dolaska i *Pickup & check-out* posle — stavke se prave automatski iz rezervacije (oprema, dodaci, stolice, pića), mogu se dodati i svoje. Kad je setup gotov, jedno dugme prebacuje status u „Room ready“ i obaveštava osoblje i menadžere (ekipa ne dobija obaveštenje)
 - Check-out beleške o oštećenjima + fotografije (čuvaju se u `storage/uploads`, vidi ih samo osoblje)
 - Štampa (*Print* meni na bootcampu): **Room setup order** (šta se nosi i montira u koju sobu, stolice po broju, pića, potpisi), **Pickup order** i **Bootcamp report** na kraju (dodatna oprema sa danima i „unit-days“, tiketi, check-out, slike, ocena ekipe)
 - Istorija izmena po bootcampu (ko je šta i kada promenio — osoblje i ekipa)
-- Automatski podsetnici (9–21h): 3 dana pre početka menadžeru ako nema sobe (ponovo dan pred), ekipi ako nije izabrala pića/stolice (push + email), na dan početka osoblju ako setup čeklista nije gotova
+- Automatski podsetnici (9–21h): 3 dana pre početka menadžeru ako nema sobe (ponovo dan pred), ekipi ako nije izabrala pića/stolice (push + email), osoblju 24h i 3h pred rok za spremanje sobe, i upozorenje kad rok prođe a soba nije označena kao spremna (ne šalje se od 00 do 07h)
 - Ocena: dan posle kraja bootcampa ekipa dobija zahtev za ocenu (1–5 ★ + komentar), menadžeri dobijaju obaveštenje
 
 **Uloge**
@@ -31,7 +31,7 @@ Svetla i tamna tema (prekidač ☀/☾ u headeru, pamti se po uređaju). Čist P
 
 **Klijent (jedan nalog po ekipi — menadžer ekipe ili glavni igrač)**
 - Vidi svoj bootcamp: hotel, sobu, datume, opremu, info (Wi-Fi itd.) — bez cene
-- Bira pića za frižider i traži dopunu (dopuna otvara tiket „Drinks refill“)
+- Bira pića za frižider i traži dopunu — upisuje koliko je potrošila od svakog pića (otvara tiket „Drinks refill“ sa količinama)
 - Za svaku stolicu bira ručke: obe ostaju / bez obe / bez leve / bez desne
 - Traži dodatnu opremu (monitor, kameru…). Manager odobrava i upisuje od kog do kog dana je u sobi
 - Otvara tikete i dopisuje se sa podrškom

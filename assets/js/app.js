@@ -81,6 +81,14 @@
     }).catch((err) => alertMsg(err.message)).finally(() => { btn.disabled = false; });
   }));
 
+  // Number steppers (refill)
+  $$('.stepper button[data-step]').forEach((b) => b.addEventListener('click', (e) => {
+    e.preventDefault();
+    const input = $('input', b.parentElement);
+    const v = Math.max(0, Math.min(99, (parseInt(input.value, 10) || 0) + parseInt(b.dataset.step, 10)));
+    input.value = v;
+  }));
+
   // Clickable table rows
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => {
     if (e.target.closest('a,button,input,select,label,form')) return;

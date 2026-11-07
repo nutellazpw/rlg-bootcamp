@@ -250,6 +250,9 @@ function migrations(): array
                 ADD COLUMN chairs_saved_at DATETIME NULL,
                 ADD COLUMN checkout_notes TEXT NULL",
         ],
+        3 => [
+            "ALTER TABLE bootcamps ADD COLUMN ready_by DATETIME NULL AFTER end_date, ADD COLUMN room_ready_at DATETIME NULL AFTER ready_by",
+        ],
     ];
 }
 

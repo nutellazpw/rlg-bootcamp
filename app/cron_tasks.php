@@ -14,6 +14,9 @@ function run_cron_tasks(): string
     $n = send_ticket_reminders();
     $out[] = "ticket reminders sent: $n";
 
+    $n = send_setup_deadline_reminders();
+    $out[] = "room setup reminders sent: $n";
+
     $n = send_bootcamp_reminders();
     $out[] = "bootcamp reminders sent: $n";
 

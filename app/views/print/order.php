@@ -10,7 +10,7 @@ $n = 0;
     <div class="info-room"><span>Room</span><strong><?= $b['room'] ? e($b['room']) : '____' ?></strong></div>
     <div><span>Team</span><strong><?= e($b['team_name']) ?></strong> <small><?= e($b['team_game']) ?></small></div>
     <div><span>Hotel</span><strong><?= e($b['hotel_name']) ?></strong><small><?= e(trim(($b['hotel_address'] ?? '') . ', ' . ($b['hotel_city'] ?? ''), ', ')) ?></small></div>
-    <div><span><?= $setup ? 'Ready by' : 'Collect after' ?></span><strong><?= e(fmt_date($setup ? $b['start_date'] : $b['end_date'], 'D d M Y')) ?></strong><small>Bootcamp <?= e(fmt_range($b['start_date'], $b['end_date'])) ?></small></div>
+    <div><span><?= $setup ? 'Ready by' : 'Collect after' ?></span><strong><?= $setup && $b['ready_by'] ? e(date('D d M Y, H:i', strtotime($b['ready_by']))) : e(fmt_date($setup ? $b['start_date'] : $b['end_date'], 'D d M Y')) ?></strong><small>Bootcamp <?= e(fmt_range($b['start_date'], $b['end_date'])) ?></small></div>
     <div><span>Team contact</span>
         <?php if (!$contacts): ?><strong>—</strong><?php endif; ?>
         <?php foreach ($contacts as $c): ?><strong><?= e($c['name']) ?></strong><small><?= e($c['phone'] ?: $c['email']) ?></small><?php endforeach; ?>

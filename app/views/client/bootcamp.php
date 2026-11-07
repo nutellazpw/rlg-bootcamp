@@ -93,11 +93,27 @@ $chairChanged = count(array_filter($chairs, fn ($c) => $c !== 'keep'));
             <?php if ($open): ?><button class="btn btn-sm" type="submit">Save drinks</button><?php endif; ?>
         </form>
         <?php if ($open && $drinkIds): ?>
-            <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/refill')) ?>" class="refill-form">
-                <?= csrf_field() ?>
-                <input type="text" name="note" maxlength="300" placeholder="Anything specific? (optional)">
-                <button class="btn btn-sm btn-outline" type="submit">Request refill</button>
-            </form>
+            <details class="refill-box" id="refill">
+                <summary class="btn btn-sm btn-outline">Request refill</summary>
+                <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/refill')) ?>" class="refill-form">
+                    <?= csrf_field() ?>
+                    <p class="small muted">How many of each did you use? We will bring the same amount.</p>
+                    <div class="refill-list">
+                        <?php foreach ($drinks as $d): if (!in_array((int) $d['id'], $drinkIds, true)) { continue; } ?>
+                            <label class="refill-row">
+                                <span><?= e($d['name']) ?></span>
+                                <span class="stepper">
+                                    <button type="button" data-step="-1" aria-label="Less">−</button>
+                                    <input type="number" name="qty[<?= (int) $d['id'] ?>]" value="0" min="0" max="99" inputmode="numeric">
+                                    <button type="button" data-step="1" aria-label="More">+</button>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                    <input type="text" name="note" maxlength="300" placeholder="Anything else? (optional)">
+                    <button class="btn btn-sm" type="submit">Send refill request</button>
+                </form>
+            </details>
         <?php endif; ?>
     </section>
 
