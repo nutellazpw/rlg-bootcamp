@@ -253,6 +253,21 @@ function migrations(): array
         3 => [
             "ALTER TABLE bootcamps ADD COLUMN ready_by DATETIME NULL AFTER end_date, ADD COLUMN room_ready_at DATETIME NULL AFTER ready_by",
         ],
+        4 => [
+            "CREATE TABLE IF NOT EXISTS ticket_attachments (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                ticket_id INT UNSIGNED NOT NULL,
+                message_id INT UNSIGNED NOT NULL,
+                user_id INT UNSIGNED NULL,
+                file VARCHAR(190) NOT NULL,
+                mime VARCHAR(40) NOT NULL,
+                size INT UNSIGNED NOT NULL DEFAULT 0,
+                original_name VARCHAR(190) NULL,
+                created_at DATETIME NOT NULL,
+                KEY idx_message (message_id),
+                KEY idx_ticket (ticket_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        ],
     ];
 }
 

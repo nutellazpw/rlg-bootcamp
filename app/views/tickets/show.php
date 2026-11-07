@@ -23,12 +23,18 @@ $lastId = $messages ? (int) end($messages)['id'] : 0;
                 <?php foreach ($messages as $m) { partial('tickets/_message', ['m' => $m, 'me' => $me]); } ?>
             </div>
             <div id="bottom"></div>
-            <form method="post" action="<?= e(url('/tickets/' . $t['id'] . '/reply')) ?>" class="chat-form" id="chat-form">
+            <form method="post" action="<?= e(url('/tickets/' . $t['id'] . '/reply')) ?>" class="chat-form" id="chat-form" enctype="multipart/form-data">
                 <?= csrf_field() ?>
-                <textarea name="body" rows="2" placeholder="<?= $t['status'] === 'resolved' ? 'Write to reopen the ticket…' : 'Write a message…' ?>" required></textarea>
+                <label class="attach-btn" title="Add photo or video" aria-label="Add photo or video">
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.5 6.5v10a4.5 4.5 0 0 1-9 0V5a3 3 0 0 1 6 0v10.5a1.5 1.5 0 0 1-3 0V6.5H9v9a3 3 0 0 0 6 0V5a4.5 4.5 0 0 0-9 0v11.5a6 6 0 0 0 12 0v-10h-1.5Z"/></svg>
+                    <input type="file" name="files[]" accept="image/*,video/*" multiple data-attach-input>
+                </label>
+                <textarea name="body" rows="2" placeholder="<?= $t['status'] === 'resolved' ? 'Write to reopen the ticket…' : 'Write a message…' ?>"></textarea>
                 <button class="btn" type="submit">Send</button>
             </form>
-            <p class="hint chat-hint">Ctrl/⌘ + Enter to send. New messages appear automatically.</p>
+            <div class="attach-preview" data-attach-preview></div>
+            <div class="upload-progress" data-upload-progress hidden><i></i><span></span></div>
+            <p class="hint chat-hint">📎 Photos &amp; videos up to <?= e(human_bytes(upload_limit_bytes())) ?>. Ctrl/⌘ + Enter to send. New messages appear automatically.</p>
         </section>
     </div>
     <?php if ($staff): ?>

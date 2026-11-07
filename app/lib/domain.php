@@ -254,11 +254,16 @@ function ticket_find(int $id): ?array
 
 function ticket_messages(int $ticketId, int $afterId = 0): array
 {
-    return all(
+    $rows = all(
         'SELECT m.*, u.name AS user_name, u.role AS user_role FROM ticket_messages m LEFT JOIN users u ON u.id = m.user_id
          WHERE m.ticket_id = ? AND m.id > ? ORDER BY m.id',
         [$ticketId, $afterId]
     );
+    $att = attachments_by_message(array_column($rows, 'id'));
+    foreach ($rows as &$r) {
+        $r['attachments'] = $att[(int) $r['id']] ?? [];
+    }
+    return $rows;
 }
 
 function ticket_mark_read(int $ticketId, int $userId): void
@@ -270,7 +275,7 @@ function ticket_mark_read(int $ticketId, int $userId): void
 /**
  * Create a ticket with its first message. Notifies staff (or the team, if staff created it).
  */
-function ticket_create(array $author, int $teamId, ?int $bootcampId, string $category, string $subject, string $body): int
+function ticket_create(array $author, int $teamId, ?int $bootcampId, string $category, string $subject, string $body, array $files = []): int
 {
     $isStaff = is_staff($author);
     $id = insert('tickets', [
@@ -284,8 +289,12 @@ function ticket_create(array $author, int $teamId, ?int $bootcampId, string $cat
         'updated_at' => now(),
         'awaiting_staff_since' => $isStaff ? null : now(),
     ]);
-    insert('ticket_messages', ['ticket_id' => $id, 'user_id' => $author['id'], 'body' => $body, 'created_at' => now()]);
+    $msgId = insert('ticket_messages', ['ticket_id' => $id, 'user_id' => $author['id'], 'body' => $body, 'created_at' => now()]);
+    if ($files) {
+        store_attachments($files, $id, $msgId, (int) $author['id']);
+    }
     ticket_mark_read($id, (int) $author['id']);
+    $label = attachments_label($files);
 
     $team = (string) scalar('SELECT name FROM teams WHERE id = ?', [$teamId]);
     $room = $bootcampId ? (string) scalar("SELECT CONCAT(h.name, IF(b.room IS NULL OR b.room = '', '', CONCAT(' · room ', b.room))) FROM bootcamps b JOIN hotels h ON h.id = b.hotel_id WHERE b.id = ?", [$bootcampId]) : '';
@@ -294,7 +303,7 @@ function ticket_create(array $author, int $teamId, ?int $bootcampId, string $cat
     } else {
         notify_staff(
             'New ticket #' . $id . ' · ' . $team,
-            '[' . (TICKET_CATEGORIES[$category] ?? $category) . '] ' . $subject . ($room ? ' — ' . $room : ''),
+            '[' . (TICKET_CATEGORIES[$category] ?? $category) . '] ' . $subject . ($room ? ' — ' . $room : '') . ($label ? ' · ' . $label : ''),
             '/tickets/' . $id,
             true,
             (int) $author['id']
@@ -303,10 +312,13 @@ function ticket_create(array $author, int $teamId, ?int $bootcampId, string $cat
     return $id;
 }
 
-function ticket_add_message(array $ticket, array $author, string $body): int
+function ticket_add_message(array $ticket, array $author, string $body, array $files = []): int
 {
     $isStaff = is_staff($author);
     $id = insert('ticket_messages', ['ticket_id' => $ticket['id'], 'user_id' => $author['id'], 'body' => $body, 'created_at' => now()]);
+    if ($files) {
+        store_attachments($files, (int) $ticket['id'], $id, (int) $author['id']);
+    }
     $data = ['updated_at' => now()];
     if ($isStaff) {
         $data['awaiting_staff_since'] = null;
@@ -328,7 +340,7 @@ function ticket_add_message(array $ticket, array $author, string $body): int
     update('tickets', $data, 'id = ?', [$ticket['id']]);
     ticket_mark_read((int) $ticket['id'], (int) $author['id']);
 
-    $preview = mb_strimwidth(preg_replace('/\s+/', ' ', $body), 0, 140, '…');
+    $preview = trim(mb_strimwidth(preg_replace('/\s+/', ' ', $body), 0, 140, '…') . ' ' . attachments_label($files));
     if ($isStaff) {
         notify(team_user_ids((int) $ticket['team_id']), 'Reply from Relog support', $preview, '/tickets/' . $ticket['id']);
     } else {

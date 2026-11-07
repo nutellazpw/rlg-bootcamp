@@ -51,6 +51,14 @@ foreach ($routes as [$m, $pattern, $handler]) {
         array_shift($matches);
         [$file, $fn] = explode('@', $handler);
         require_once APP_DIR . '/controllers/' . $file . '.php';
+        if (upload_too_large()) {
+            $msg = 'The file is too large. Max ' . human_bytes(upload_limit_bytes()) . ' per upload.';
+            if (wants_json()) {
+                json_out(['error' => $msg], 413);
+            }
+            flash('error', $msg);
+            back();
+        }
         if ($method === 'POST' && !in_array($handler, ['push@pending'], true)) {
             csrf_check();
         }

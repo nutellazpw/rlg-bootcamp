@@ -72,12 +72,20 @@ function tickets_create(): void
     $body = (string) input('body');
     $category = (string) input('category', $staff ? 'other' : 'technical');
     if (is_post()) {
-        if ($subject === '' || $body === '') {
+        [$files, $fileErrors] = collect_uploads('files');
+        if ($subject === '' || ($body === '' && !$files)) {
             $errors[] = 'Write a subject and a message.';
-        } else {
+        }
+        if ($fileErrors && !$files && $body === '') {
+            $errors = array_merge($errors, $fileErrors);
+        }
+        if (!$errors) {
             $teamId = $b ? (int) $b['team_id'] : (int) $u['team_id'];
-            $id = ticket_create($u, $teamId, $b ? (int) $b['id'] : null, $category, $subject, $body);
+            $id = ticket_create($u, $teamId, $b ? (int) $b['id'] : null, $category, $subject, $body, $files);
             flash('success', $staff ? 'Message sent to the team.' : 'Ticket sent. Our support team has been notified.');
+            if ($fileErrors) {
+                flash('warning', 'Some files were not attached: ' . implode(' ', $fileErrors));
+            }
             redirect('/tickets/' . $id);
         }
     }
@@ -109,13 +117,28 @@ function tickets_reply(int $id): void
     $u = require_login();
     $t = tickets_access($u, $id);
     $body = trim((string) ($_POST['body'] ?? ''));
-    if ($body === '') {
+    [$files, $fileErrors] = collect_uploads('files');
+    if ($fileErrors && !$files && $body === '') {
+        if (wants_json()) {
+            json_out(['error' => implode(' ', $fileErrors)], 422);
+        }
+        flash('error', implode(' ', $fileErrors));
+        redirect('/tickets/' . $id);
+    }
+    if ($body === '' && !$files) {
         if (wants_json()) {
             json_out(['error' => 'Empty message'], 422);
         }
         redirect('/tickets/' . $id);
     }
-    ticket_add_message($t, $u, mb_substr($body, 0, 5000));
+    ticket_add_message($t, $u, mb_substr($body, 0, 5000), $files);
+    if ($fileErrors) {
+        if (wants_json()) {
+            $GLOBALS['__reply_warning'] = implode(' ', $fileErrors);
+        } else {
+            flash('warning', 'Sent, but: ' . implode(' ', $fileErrors));
+        }
+    }
     if (wants_json()) {
         tickets_messages($id);
     }
@@ -169,9 +192,23 @@ function tickets_messages(int $id): void
     }
     $fresh = ticket_find($id);
     json_out([
+        'warning' => $GLOBALS['__reply_warning'] ?? null,
         'html' => $html,
         'last_id' => $msgs ? (int) end($msgs)['id'] : $after,
         'status' => $fresh['status'],
         'status_label' => TICKET_STATUSES[$fresh['status']] ?? $fresh['status'],
     ]);
+}
+
+/** Serve a ticket attachment to staff or the team that owns the ticket. */
+function tickets_attachment(int $id): void
+{
+    $u = require_login();
+    $a = one('SELECT * FROM ticket_attachments WHERE id = ?', [$id]) ?? not_found();
+    tickets_access($u, (int) $a['ticket_id']);
+    $path = attachments_dir((int) $a['ticket_id']) . '/' . basename($a['file']);
+    if (!is_file($path)) {
+        not_found();
+    }
+    send_file_with_range($path, $a['mime'], (string) ($a['original_name'] ?: $a['file']));
 }

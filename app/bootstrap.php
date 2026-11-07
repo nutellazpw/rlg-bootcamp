@@ -46,3 +46,4 @@ require APP_DIR . '/lib/mailer.php';
 require APP_DIR . '/lib/webpush.php';
 require APP_DIR . '/lib/notify.php';
 require APP_DIR . '/lib/domain.php';
+require APP_DIR . '/lib/attachments.php';

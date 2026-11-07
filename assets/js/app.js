@@ -81,6 +81,46 @@
     }).catch((err) => alertMsg(err.message)).finally(() => { btn.disabled = false; });
   }));
 
+  // Photo / video picker preview (keeps its own file list so files can be removed)
+  $$('[data-attach-input]').forEach((input) => {
+    const form = input.closest('form');
+    const preview = $('[data-attach-preview]', form) || (form.parentElement && $('[data-attach-preview]', form.parentElement));
+    let picked = [];
+    const sync = () => {
+      const dt = new DataTransfer();
+      picked.forEach((f) => dt.items.add(f));
+      input.files = dt.files;
+      if (!preview) return;
+      preview.innerHTML = '';
+      picked.forEach((f, i) => {
+        const chip = document.createElement('div');
+        chip.className = 'attach-chip';
+        const url = URL.createObjectURL(f);
+        if (f.type.startsWith('image/') && !/hei[cf]/i.test(f.type)) {
+          chip.innerHTML = '<img alt="">';
+          chip.firstChild.src = url;
+        } else if (f.type.startsWith('video/')) {
+          chip.innerHTML = '<video muted playsinline preload="metadata"></video><span class="vid">▶ video</span>';
+          chip.firstChild.src = url;
+        } else {
+          chip.textContent = f.name;
+        }
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.textContent = '×';
+        x.setAttribute('aria-label', 'Remove');
+        x.addEventListener('click', () => { picked.splice(i, 1); sync(); });
+        chip.appendChild(x);
+        preview.appendChild(chip);
+      });
+    };
+    input.addEventListener('change', () => {
+      picked = picked.concat(Array.from(input.files)).slice(0, 10);
+      sync();
+    });
+    form.addEventListener('rlg:sent', () => { picked = []; sync(); });
+  });
+
   // Clickable table rows
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => {
     if (e.target.closest('a,button,input,select,label,form')) return;
@@ -278,19 +318,52 @@
     setInterval(poll, 4000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 
+    const bar = $('[data-upload-progress]');
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = ta.value.trim();
-      if (!text) return;
-      const btn = $('button', form);
+      const fileInput = $('[data-attach-input]', form);
+      const files = fileInput ? Array.from(fileInput.files) : [];
+      if (!text && !files.length) return;
+      const btn = $('button[type=submit]', form);
       btn.disabled = true;
       const fd = new FormData();
       fd.append('body', text);
       fd.append('_csrf', CSRF);
-      api('/tickets/' + id + '/reply?after=' + chat.dataset.last, { method: 'POST', body: fd })
-        .then((d) => { ta.value = ''; apply(d); })
-        .catch((err) => alertMsg(err.message))
-        .finally(() => { btn.disabled = false; ta.focus(); });
+      files.forEach((f) => fd.append('files[]', f, f.name));
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', BASE + '/tickets/' + id + '/reply?after=' + chat.dataset.last);
+      xhr.setRequestHeader('X-CSRF-Token', CSRF);
+      xhr.setRequestHeader('X-Requested-With', 'fetch');
+      xhr.setRequestHeader('Accept', 'application/json');
+      if (files.length && bar) {
+        bar.hidden = false;
+        xhr.upload.onprogress = (ev) => {
+          if (!ev.lengthComputable) return;
+          const pct = Math.round(ev.loaded / ev.total * 100);
+          $('i', bar).style.width = pct + '%';
+          $('span', bar).textContent = pct < 100 ? 'Uploading… ' + pct + '%' : 'Processing…';
+        };
+      }
+      xhr.onload = () => {
+        let d = {};
+        try { d = JSON.parse(xhr.responseText); } catch (err) {}
+        if (xhr.status >= 200 && xhr.status < 300) {
+          ta.value = '';
+          form.dispatchEvent(new Event('rlg:sent'));
+          apply(d);
+          if (d.warning) alertMsg(d.warning, 'warning');
+        } else {
+          alertMsg(d.error || (xhr.status === 413 ? 'The file is too large.' : 'Could not send. Try again.'));
+        }
+      };
+      xhr.onerror = () => alertMsg('Network error — the message was not sent.');
+      xhr.onloadend = () => {
+        btn.disabled = false;
+        if (bar) { bar.hidden = true; $('i', bar).style.width = '0'; }
+        ta.focus();
+      };
+      xhr.send(fd);
     });
     ta.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit(); }

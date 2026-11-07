@@ -7,7 +7,7 @@
 </div>
 <?php if ($errors): ?><div class="alert alert-error"><?php foreach ($errors as $er): ?><div><?= e($er) ?></div><?php endforeach; ?></div><?php endif; ?>
 
-<form method="post" action="<?= e(url('/tickets/new')) ?>" class="form card">
+<form method="post" action="<?= e(url('/tickets/new')) ?>" class="form card" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <?php if ($b): ?><input type="hidden" name="bootcamp" value="<?= (int) $b['id'] ?>"><?php endif; ?>
     <?php if (!$staff): ?>
@@ -27,6 +27,11 @@
         <input type="hidden" name="category" value="other">
     <?php endif; ?>
     <label class="field"><span>Subject</span><input type="text" name="subject" value="<?= e($subject) ?>" maxlength="190" required placeholder="<?= $staff ? 'e.g. Room change tomorrow' : 'e.g. PC 3 has no internet' ?>"></label>
-    <label class="field"><span>Message</span><textarea name="body" rows="6" required><?= e($body) ?></textarea></label>
+    <label class="field"><span>Message</span><textarea name="body" rows="6"><?= e($body) ?></textarea></label>
+    <div class="field">
+        <span>Photos / videos <small>(optional, up to <?= e(human_bytes(upload_limit_bytes())) ?> each)</small></span>
+        <label class="btn btn-sm btn-ghost file-btn">📎 Add photo or video<input type="file" name="files[]" accept="image/*,video/*" multiple data-attach-input></label>
+        <div class="attach-preview" data-attach-preview></div>
+    </div>
     <div class="form-actions"><button class="btn" type="submit"><?= $staff ? 'Send to team' : 'Send ticket' ?></button></div>
 </form>

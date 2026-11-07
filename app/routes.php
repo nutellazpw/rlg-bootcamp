@@ -68,6 +68,7 @@ return [
     ['POST', '/tickets/(\d+)/reply', 'tickets@reply'],
     ['POST', '/tickets/(\d+)/update', 'tickets@update'],
     ['GET', '/tickets/(\d+)/messages', 'tickets@messages'],
+    ['GET', '/attachments/(\d+)', 'tickets@attachment'],
 
     // Client
     ['GET', '/my', 'client@home'],

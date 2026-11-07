@@ -12,7 +12,7 @@ Svetla i tamna tema (prekidač ☀/☾ u headeru, pamti se po uređaju). Čist P
 - Kalendar po mesecima, boje po hotelu
 - Inventar: ukupne količine. Upozorava kad rezervacije ili odobreni dodaci pređu stanje u nekom periodu (i uživo u formi)
 - Hoteli, pića (lista iz koje ekipe biraju), nalozi osoblja, podešavanja
-- Tiketi: chat sa ekipom, statusi, dodela radniku
+- Tiketi: chat sa ekipom, statusi, dodela radniku, **slike i video** u porukama (i ekipa i osoblje; do 20 MB slika / 200 MB video, uz PHP limit)
 - Čekliste (samo osoblje): *Room setup* pre dolaska i *Pickup & check-out* posle — stavke se prave automatski iz rezervacije (oprema, dodaci, stolice, pića), mogu se dodati i svoje. Kad je setup gotov, jedno dugme prebacuje status u „Room ready“ i obaveštava osoblje i menadžere (ekipa ne dobija obaveštenje)
 - Check-out beleške o oštećenjima + fotografije (čuvaju se u `storage/uploads`, vidi ih samo osoblje)
 - Štampa (*Print* meni na bootcampu): **Room setup order** (šta se nosi i montira u koju sobu, stolice po broju, pića, potpisi), **Pickup order** i **Bootcamp report** na kraju (dodatna oprema sa danima i „unit-days“, tiketi, check-out, slike, ocena ekipe)
@@ -63,6 +63,7 @@ Manager i administrator dobijaju sve tikete. Klijent dobija notifikaciju kad pod
 7. **Telegram bot:** @BotFather → `/newbot` → token. Dodaj bota u grupu podrške, pošalji poruku u grupu i otvori
    `https://api.telegram.org/bot<TOKEN>/getUpdates` → `chat.id` (počinje sa `-100…`). Upiši oba u config.
 8. U *Setup → Settings* testiraj email, Telegram i cron.
+9. **Limit za upload (video):** cPanel → *Select PHP Version → Options* (ili *MultiPHP INI Editor*) → `upload_max_filesize = 256M`, `post_max_size = 260M`, `max_execution_time = 300`. Podrazumevano je često samo 2M, pa video ne može da se pošalje. Trenutni limit se vidi ispod chata u tiketu.
 
 Prvi koraci posle instalacije: *Inventory* (upiši količine i označi šta ekipe smeju da traže kao dodatak) → *Hotels* → *Teams* (pozivnica ide na email klijenta) → *New bootcamp*.
 
