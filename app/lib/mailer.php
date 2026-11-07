@@ -31,7 +31,9 @@ function send_mail(string $to, string $subject, string $html): bool
         $mail->isHTML(true);
         $mail->Subject = $subject;
         $mail->Body = $html;
-        $mail->AltBody = trim(html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '</p>'], "\n", $html))));
+        $text = preg_replace(['#<(br|/p|/h1|/div|/tr)\b[^>]*>#i', '#<a [^>]*href="([^"]+)"[^>]*>.*?</a>#is'], ["\n", '$1'], $html);
+        $text = html_entity_decode(strip_tags((string) $text), ENT_QUOTES, 'UTF-8');
+        $mail->AltBody = trim(preg_replace("/[ \t]*\n[ \t\n]*/", "\n\n", (string) $text));
         $mail->send();
         log_line('mail.log', "OK  $to  $subject");
         return true;
