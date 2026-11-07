@@ -356,3 +356,225 @@ function send_ticket_reminders(): int
     }
     return count($tickets);
 }
+
+// ---------------------------------------------------------------------------
+// Activity log (history of changes)
+// ---------------------------------------------------------------------------
+
+function log_activity(?int $bootcampId, string $action, ?array $actor = null): void
+{
+    $actor = $actor ?? (function_exists('user') && session_status() === PHP_SESSION_ACTIVE ? user() : null);
+    insert('activity_log', [
+        'bootcamp_id' => $bootcampId,
+        'user_id' => $actor['id'] ?? null,
+        'action' => mb_substr($action, 0, 500),
+        'created_at' => now(),
+    ]);
+}
+
+function bootcamp_activity(int $bootcampId, int $limit = 200): array
+{
+    return all(
+        'SELECT a.*, u.name AS user_name, u.role AS user_role FROM activity_log a LEFT JOIN users u ON u.id = a.user_id
+         WHERE a.bootcamp_id = ? ORDER BY a.id DESC LIMIT ' . (int) $limit,
+        [$bootcampId]
+    );
+}
+
+function chair_summary_text(array $chairs): string
+{
+    $groups = [];
+    foreach ($chairs as $no => $opt) {
+        if ($opt !== 'keep') {
+            $groups[$opt][] = $no;
+        }
+    }
+    if (!$groups) {
+        return 'All chairs keep both armrests';
+    }
+    $parts = [];
+    foreach ($groups as $opt => $nos) {
+        $parts[] = ARMREST_OPTIONS[$opt] . ': #' . implode(', #', $nos);
+    }
+    return implode(' · ', $parts);
+}
+
+// ---------------------------------------------------------------------------
+// Checklists (staff only): setup before arrival, pickup after the bootcamp
+// ---------------------------------------------------------------------------
+
+const CHECKLIST_PHASES = ['setup' => 'Room setup', 'checkout' => 'Pickup & check-out'];
+
+/** Items generated from the booking. Keyed so they can be kept in sync when the booking changes. */
+function checklist_wanted(array $b): array
+{
+    $id = (int) $b['id'];
+    $items = bootcamp_items($id);
+    $chairs = bootcamp_chairs($id);
+    $drinks = array_column(bootcamp_drinks($id), 'name');
+    $extras = all("SELECT x.*, e.name AS equipment_name FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id WHERE x.bootcamp_id = ? AND x.status = 'approved' ORDER BY x.id", [$id]);
+
+    $setup = [];
+    $checkout = [];
+    $sort = 0;
+    foreach ($items as $it) {
+        $detail = $it['spec'] ?: null;
+        if ($it['category'] === 'chair') {
+            $detail = chair_summary_text($chairs);
+        }
+        $setup['eq:' . $it['id']] = [(int) $it['qty'] . '× ' . $it['name'], $detail, $sort];
+        $checkout['out_eq:' . $it['id']] = ['Collect ' . (int) $it['qty'] . '× ' . $it['name'], null, $sort];
+        $sort++;
+    }
+    foreach ($extras as $x) {
+        $from = $x['bill_from'] ?: $b['start_date'];
+        $to = $x['bill_to'] ?: $b['end_date'];
+        $setup['extra:' . $x['id']] = [(int) $x['qty'] . '× ' . $x['equipment_name'] . ' (extra)', 'In room ' . fmt_date($from, 'd M') . ' → ' . fmt_date($to, 'd M'), 100 + $sort];
+        $checkout['out_extra:' . $x['id']] = ['Collect ' . (int) $x['qty'] . '× ' . $x['equipment_name'] . ' (extra)', null, 100 + $sort];
+        $sort++;
+    }
+    $setup['net'] = ['Internet / network tested on every PC', null, 200];
+    $setup['drinks'] = ['Fridge stocked', $drinks ? implode(', ', $drinks) : 'Team has not chosen drinks yet', 201];
+    $setup['clean'] = ['Room clean, cables tidy', null, 202];
+    $checkout['damage'] = ['Room and equipment checked for damage', 'Write notes and add photos below if anything is damaged', 300];
+    $checkout['fridge'] = ['Fridge emptied', null, 301];
+    $checkout['keys'] = ['Room handed back to the hotel', null, 302];
+    return ['setup' => $setup, 'checkout' => $checkout];
+}
+
+function checklist_sync(array $b): void
+{
+    $id = (int) $b['id'];
+    foreach (checklist_wanted($b) as $phase => $wanted) {
+        $existing = [];
+        foreach (all('SELECT id, item_key FROM checklist_items WHERE bootcamp_id = ? AND phase = ? AND item_key IS NOT NULL', [$id, $phase]) as $r) {
+            $existing[$r['item_key']] = (int) $r['id'];
+        }
+        foreach ($wanted as $key => [$label, $detail, $sort]) {
+            if (isset($existing[$key])) {
+                update('checklist_items', ['label' => mb_substr($label, 0, 190), 'detail' => $detail ? mb_substr($detail, 0, 500) : null, 'sort' => $sort], 'id = ?', [$existing[$key]]);
+                unset($existing[$key]);
+            } else {
+                insert('checklist_items', ['bootcamp_id' => $id, 'phase' => $phase, 'item_key' => $key, 'label' => mb_substr($label, 0, 190), 'detail' => $detail ? mb_substr($detail, 0, 500) : null, 'sort' => $sort]);
+            }
+        }
+        foreach ($existing as $rowId) {
+            q('DELETE FROM checklist_items WHERE id = ?', [$rowId]);
+        }
+    }
+}
+
+function checklist_items(int $bootcampId, string $phase): array
+{
+    return all(
+        'SELECT c.*, u.name AS done_name FROM checklist_items c LEFT JOIN users u ON u.id = c.done_by
+         WHERE c.bootcamp_id = ? AND c.phase = ? ORDER BY c.sort, c.id',
+        [$bootcampId, $phase]
+    );
+}
+
+function checklist_progress(int $bootcampId, string $phase): array
+{
+    $row = one('SELECT COUNT(*) AS total, SUM(done_at IS NOT NULL) AS done FROM checklist_items WHERE bootcamp_id = ? AND phase = ?', [$bootcampId, $phase]);
+    return [(int) ($row['done'] ?? 0), (int) ($row['total'] ?? 0)];
+}
+
+// ---------------------------------------------------------------------------
+// Pre-arrival reminders + feedback requests (run by cron)
+// ---------------------------------------------------------------------------
+
+function manager_ids(): array
+{
+    return array_map('intval', array_column(all("SELECT id FROM users WHERE active = 1 AND role IN ('admin','manager')"), 'id'));
+}
+
+/** Records a reminder; returns false if it was already sent. */
+function reminder_once(int $bootcampId, string $kind): bool
+{
+    return q('INSERT IGNORE INTO bootcamp_reminders (bootcamp_id, kind, sent_at) VALUES (?, ?, NOW())', [$bootcampId, $kind])->rowCount() > 0;
+}
+
+function send_bootcamp_reminders(): int
+{
+    $hour = (int) date('G');
+    if ($hour < 9 || $hour >= 21) {
+        return 0; // daytime only
+    }
+    $sent = 0;
+    $rows = all(
+        "SELECT b.*, t.name AS team_name, h.name AS hotel_name, DATEDIFF(b.start_date, CURDATE()) AS days_left
+         FROM bootcamps b JOIN teams t ON t.id = b.team_id JOIN hotels h ON h.id = b.hotel_id
+         WHERE b.status IN ('planned','ready','active') AND b.start_date BETWEEN CURDATE() AND (CURDATE() + INTERVAL 3 DAY)"
+    );
+    foreach ($rows as $b) {
+        $id = (int) $b['id'];
+        $days = (int) $b['days_left'];
+        $when = $days === 0 ? 'today' : ($days === 1 ? 'tomorrow' : "in $days days");
+
+        if (!$b['room']) {
+            $kind = $days <= 1 ? 'room_1d' : 'room_3d';
+            if (reminder_once($id, $kind)) {
+                notify(manager_ids(), 'No room yet: ' . $b['team_name'], 'Bootcamp at ' . $b['hotel_name'] . ' starts ' . $when . '.', '/bootcamps/' . $id, '🏨 No room assigned yet: ' . $b['team_name'] . ' at ' . $b['hotel_name'] . ', starts ' . $when);
+                $sent++;
+            }
+        }
+
+        $needDrinks = !$b['drinks_saved_at'];
+        $needChairs = !$b['chairs_saved_at'] && bootcamp_chair_count($id) > 0;
+        if (($needDrinks || $needChairs) && $days >= 1 && reminder_once($id, 'prefs')) {
+            $what = implode(' and ', array_filter([$needDrinks ? 'drinks for your fridge' : null, $needChairs ? 'the armrests on your chairs' : null]));
+            notify(team_user_ids((int) $b['team_id']), 'Your bootcamp starts ' . $when, 'Please choose ' . $what . ' so we can prepare the room.', '/my/bootcamp/' . $id);
+            foreach (all("SELECT * FROM users WHERE team_id = ? AND role = 'client' AND active = 1 AND password_hash IS NOT NULL", [(int) $b['team_id']]) as $u) {
+                send_mail($u['email'], 'Your bootcamp starts ' . $when, mail_template(
+                    'Get your room ready',
+                    'Your bootcamp at <strong>' . e($b['hotel_name']) . '</strong> starts ' . e($when) . ' (' . e(fmt_range($b['start_date'], $b['end_date'])) . ').<br><br>Please choose ' . e($what) . ' in the app so we can prepare everything before you arrive.',
+                    'Open RLG Bootcamp',
+                    abs_url('/my/bootcamp/' . $id)
+                ));
+            }
+            notify(manager_ids(), $b['team_name'] . ' has not chosen ' . ($needDrinks && $needChairs ? 'drinks & chairs' : ($needDrinks ? 'drinks' : 'chairs')), 'Reminder sent to the team. Starts ' . $when . '.', '/bootcamps/' . $id);
+            $sent++;
+        }
+
+        if ($days === 0 && $hour >= 9) {
+            [$done, $total] = checklist_progress($id, 'setup');
+            if (($total === 0 || $done < $total) && reminder_once($id, 'setup_due')) {
+                notify_staff('Room setup not finished: ' . $b['team_name'], 'Starts today · ' . $b['hotel_name'] . ($b['room'] ? ' · room ' . $b['room'] : '') . " · checklist $done/$total", '/bootcamps/' . $id . '#checklist');
+                $sent++;
+            }
+        }
+    }
+
+    // Feedback request the day after the bootcamp ends
+    $ended = all(
+        "SELECT b.*, t.name AS team_name, h.name AS hotel_name FROM bootcamps b JOIN teams t ON t.id = b.team_id JOIN hotels h ON h.id = b.hotel_id
+         WHERE b.status <> 'cancelled' AND b.end_date < CURDATE() AND b.end_date >= (CURDATE() - INTERVAL 7 DAY)
+           AND NOT EXISTS (SELECT 1 FROM feedback f WHERE f.bootcamp_id = b.id)"
+    );
+    foreach ($ended as $b) {
+        if (!reminder_once((int) $b['id'], 'feedback')) {
+            continue;
+        }
+        notify(team_user_ids((int) $b['team_id']), 'How was your bootcamp?', 'Tell us in 30 seconds — it helps us a lot.', '/my/bootcamp/' . $b['id'] . '#feedback');
+        foreach (all("SELECT * FROM users WHERE team_id = ? AND role = 'client' AND active = 1 AND password_hash IS NOT NULL", [(int) $b['team_id']]) as $u) {
+            send_mail($u['email'], 'How was your bootcamp?', mail_template(
+                'Thanks for staying with us',
+                'We hope the bootcamp at <strong>' . e($b['hotel_name']) . '</strong> went well. How did we do? Rate your bootcamp and tell us what we can do better — it takes 30 seconds.',
+                'Rate your bootcamp',
+                abs_url('/my/bootcamp/' . $b['id'] . '#feedback')
+            ));
+        }
+        $sent++;
+    }
+    return $sent;
+}
+
+function bootcamp_feedback(int $bootcampId): ?array
+{
+    return one('SELECT f.*, u.name AS user_name FROM feedback f LEFT JOIN users u ON u.id = f.user_id WHERE f.bootcamp_id = ?', [$bootcampId]);
+}
+
+function stars(int $rating): string
+{
+    return str_repeat('★', max(0, min(5, $rating))) . str_repeat('☆', 5 - max(0, min(5, $rating)));
+}

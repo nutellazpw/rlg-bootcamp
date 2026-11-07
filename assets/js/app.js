@@ -56,6 +56,31 @@
     if (m) m.content = t === 'light' ? '#ffffff' : '#0b0b0b';
   }));
 
+  // Dropdowns (print menu)
+  $$('.dropdown-toggle').forEach((t) => t.addEventListener('click', (e) => {
+    e.stopPropagation();
+    t.parentElement.classList.toggle('open');
+  }));
+  document.addEventListener('click', () => $$('.dropdown.open').forEach((d) => d.classList.remove('open')));
+
+  // Checklist: toggle without reloading
+  $$('.check-toggle-form').forEach((f) => f.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const li = f.closest('.check-item');
+    const btn = $('.check-box', f);
+    btn.disabled = true;
+    api(f.getAttribute('action').replace(BASE, ''), { method: 'POST', body: new FormData(f) }).then((d) => {
+      li.classList.toggle('done', d.done);
+      btn.setAttribute('aria-pressed', d.done ? 'true' : 'false');
+      $('.check-by', li).textContent = d.by || '';
+      const box = f.closest('.checklist');
+      const [done, total] = d.progress;
+      $('[data-progress-text]', box).textContent = done + '/' + total;
+      $('.progress i', box).style.width = (total ? Math.round(done / total * 100) : 0) + '%';
+      if (box.dataset.checklist === 'setup' && done === total && total > 0) setTimeout(() => location.reload(), 400);
+    }).catch((err) => alertMsg(err.message)).finally(() => { btn.disabled = false; });
+  }));
+
   // Clickable table rows
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => {
     if (e.target.closest('a,button,input,select,label,form')) return;
@@ -71,7 +96,7 @@
   $$('.alert-success[data-autohide]').forEach((a) => setTimeout(() => a.classList.add('fade'), 5000));
 
   // Prevent double submits
-  $$('form:not(#chat-form)').forEach((f) => f.addEventListener('submit', (e) => {
+  $$('form:not(#chat-form):not(.check-toggle-form)').forEach((f) => f.addEventListener('submit', (e) => {
     setTimeout(() => {
       if (e.defaultPrevented) return;
       $$('button[type=submit], button:not([type])', f).forEach((b) => { b.disabled = true; });

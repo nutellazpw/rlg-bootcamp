@@ -33,6 +33,29 @@ $chairChanged = count(array_filter($chairs, fn ($c) => $c !== 'keep'));
     </div>
 </section>
 
+<?php if ($canRate): ?>
+    <section class="card card-accent" id="feedback">
+        <?php if ($feedback): ?>
+            <h2 class="card-title">Thanks for your feedback!</h2>
+            <div class="stars-big"><?= stars((int) $feedback['rating']) ?></div>
+            <?php if ($feedback['comment']): ?><p class="muted">“<?= nl2br_e($feedback['comment']) ?>”</p><?php endif; ?>
+        <?php else: ?>
+            <h2 class="card-title">How was your bootcamp?</h2>
+            <p class="muted small">Rate your stay and tell us what we can do better.</p>
+            <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/feedback')) ?>" class="form">
+                <?= csrf_field() ?>
+                <div class="rating" role="radiogroup" aria-label="Rating">
+                    <?php for ($i = 5; $i >= 1; $i--): ?>
+                        <input type="radio" name="rating" id="r<?= $i ?>" value="<?= $i ?>" required><label for="r<?= $i ?>" title="<?= $i ?> / 5">★</label>
+                    <?php endfor; ?>
+                </div>
+                <label class="field"><span>Comment <small>(optional)</small></span><textarea name="comment" rows="3" placeholder="What was great? What should we improve?"></textarea></label>
+                <div><button class="btn btn-sm" type="submit">Send feedback</button></div>
+            </form>
+        <?php endif; ?>
+    </section>
+<?php endif; ?>
+
 <nav class="subnav">
     <a href="#room">Room</a><a href="#drinks">Drinks</a><a href="#chairs">Chairs</a><a href="#extras">Extras</a><a href="#support">Support</a>
 </nav>

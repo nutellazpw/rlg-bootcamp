@@ -45,6 +45,8 @@ function client_render(array $u, array $b): void
         'tickets' => all("SELECT * FROM tickets WHERE bootcamp_id = ? ORDER BY status = 'resolved', updated_at DESC LIMIT 5", [$id]),
         'others' => all("SELECT b.id, b.start_date, b.end_date, b.status, h.name AS hotel_name FROM bootcamps b JOIN hotels h ON h.id = b.hotel_id WHERE b.team_id = ? AND b.id <> ? AND b.status <> 'cancelled' ORDER BY b.start_date DESC", [(int) $u['team_id'], $id]),
         'open' => bootcamp_is_open($b),
+        'feedback' => bootcamp_feedback($id),
+        'canRate' => $b['end_date'] <= date('Y-m-d') || $b['status'] === 'completed',
     ]);
 }
 
@@ -68,6 +70,7 @@ function client_drinks(int $id): void
     sort($after);
     if ($before !== $after) {
         $names = array_column(bootcamp_drinks($id), 'name');
+        log_activity($id, 'Team chose drinks: ' . ($names ? implode(', ', $names) : 'none'));
         notify_staff($b['team_name'] . ' updated drinks', $names ? implode(', ', $names) : 'No drinks selected', '/bootcamps/' . $id . '#drinks', false);
     }
     flash('success', 'Drinks saved. We will stock your fridge with these.');
@@ -84,6 +87,7 @@ function client_refill(int $id): void
     $body = 'Please refill the fridge' . ($b['room'] ? ' in room ' . $b['room'] : '') . '.'
         . ($names ? "\nOur drinks: " . implode(', ', $names) : '')
         . ($note !== '' ? "\n\n" . $note : '');
+    log_activity($id, 'Team requested a drinks refill');
     $ticketId = ticket_create($u, (int) $b['team_id'], $id, 'refill', 'Drinks refill' . ($b['room'] ? ' · room ' . $b['room'] : ''), $body);
     flash('success', 'Refill requested. We will bring the drinks soon.');
     redirect('/tickets/' . $ticketId);
@@ -96,6 +100,7 @@ function client_chairs(int $id): void
     client_guard_open($b);
     save_chair_configs($id, (array) ($_POST['chair'] ?? []));
     $changed = (int) scalar("SELECT COUNT(*) FROM chair_configs WHERE bootcamp_id = ? AND armrests <> 'keep'", [$id]);
+    log_activity($id, 'Team set chairs: ' . chair_summary_text(bootcamp_chairs($id)));
     notify_staff($b['team_name'] . ' updated chair setup', $changed ? $changed . ' chair(s) with armrests removed' : 'All chairs keep armrests', '/bootcamps/' . $id . '#chairs', false);
     flash('success', 'Chair setup saved.');
     redirect('/my/bootcamp/' . $id . '#chairs');
@@ -117,6 +122,7 @@ function client_request_extra(int $id): void
         'bootcamp_id' => $id, 'equipment_id' => $eq['id'], 'qty' => $qty, 'note' => $note ?: null,
         'status' => 'pending', 'requested_by' => $u['id'], 'requested_at' => now(),
     ]);
+    log_activity($id, 'Team requested extra ' . $qty . '× ' . $eq['name'] . ($note ? ' — “' . $note . '”' : ''));
     notify_staff(
         'Extra request: ' . $qty . '× ' . $eq['name'],
         $b['team_name'] . ' · ' . $b['hotel_name'] . ($b['room'] ? ' · room ' . $b['room'] : '') . ($note ? ' — ' . $note : '') . ' (needs manager approval)',
@@ -133,6 +139,7 @@ function client_cancel_extra(int $id): void
     $b = client_bootcamp_or_404($u, (int) $x['bootcamp_id']);
     if ($x['status'] === 'pending') {
         update('extra_requests', ['status' => 'cancelled', 'decided_at' => now()], 'id = ?', [$id]);
+        log_activity((int) $b['id'], 'Team cancelled extra request');
         flash('success', 'Request cancelled.');
     }
     redirect('/my/bootcamp/' . $b['id'] . '#extras');

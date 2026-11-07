@@ -36,3 +36,4 @@ jobs:
             app/config.php
             storage/logs/**
             storage/cron.lock
+            storage/uploads/**

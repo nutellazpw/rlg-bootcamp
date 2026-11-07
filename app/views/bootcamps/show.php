@@ -23,6 +23,14 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
             <a class="btn btn-ghost" href="<?= e(url('/bootcamps/' . $b['id'] . '/edit')) ?>">Edit</a>
         <?php endif; ?>
         <a class="btn btn-ghost" href="<?= e(url('/tickets/new', ['bootcamp' => $b['id']])) ?>">Message team</a>
+        <div class="dropdown">
+            <button type="button" class="btn btn-ghost dropdown-toggle">Print ▾</button>
+            <div class="dropdown-menu">
+                <a href="<?= e(url('/bootcamps/' . $b['id'] . '/print', ['phase' => 'setup'])) ?>" target="_blank">Room setup order</a>
+                <a href="<?= e(url('/bootcamps/' . $b['id'] . '/print', ['phase' => 'checkout'])) ?>" target="_blank">Pickup order</a>
+                <a href="<?= e(url('/bootcamps/' . $b['id'] . '/report')) ?>" target="_blank">Bootcamp report</a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -45,6 +53,27 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
                 <button class="btn btn-sm" type="submit">Update</button>
             </form>
             <p class="hint">The team gets a notification when the room is assigned or the status changes to “Room ready”.</p>
+        </section>
+
+        <?php
+        $setupDone = count(array_filter($setupItems, fn ($i) => $i['done_at']));
+        $setupAll = $setupItems && $setupDone === count($setupItems);
+        ?>
+        <section class="card card-staff" id="checklist">
+            <div class="card-head" id="checklist-setup">
+                <h2 class="card-title">Room setup checklist <span class="tag tag-lock">Staff only</span></h2>
+                <a class="link" href="<?= e(url('/bootcamps/' . $b['id'] . '/print', ['phase' => 'setup'])) ?>" target="_blank">Print order →</a>
+            </div>
+            <?php partial('bootcamps/_checklist', ['phase' => 'setup', 'items' => $setupItems, 'b' => $b]); ?>
+            <?php if ($setupAll && $b['status'] === 'planned'): ?>
+                <form method="post" action="<?= e(url('/bootcamps/' . $b['id'] . '/quick')) ?>" class="ready-form">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="room" value="<?= e($b['room']) ?>">
+                    <input type="hidden" name="status" value="ready">
+                    <span>Everything is set up.</span>
+                    <button class="btn btn-sm" type="submit">Mark “Room ready” &amp; notify team</button>
+                </form>
+            <?php endif; ?>
         </section>
 
         <section class="card" id="equipment">
@@ -219,9 +248,63 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
                 </details>
             <?php endif; ?>
         </section>
+
+        <section class="card card-staff" id="checklist-checkout">
+            <div class="card-head">
+                <h2 class="card-title">Pickup &amp; check-out <span class="tag tag-lock">Staff only</span></h2>
+                <a class="link" href="<?= e(url('/bootcamps/' . $b['id'] . '/print', ['phase' => 'checkout'])) ?>" target="_blank">Print order →</a>
+            </div>
+            <?php partial('bootcamps/_checklist', ['phase' => 'checkout', 'items' => $checkoutItems, 'b' => $b]); ?>
+            <form method="post" action="<?= e(url('/bootcamps/' . $b['id'] . '/checkout-notes')) ?>" class="form checkout-notes">
+                <?= csrf_field() ?>
+                <label class="field"><span>Check-out &amp; damage notes</span><textarea name="checkout_notes" rows="3" placeholder="e.g. Monitor 4 stand scratched, one HDMI cable missing"><?= e($b['checkout_notes']) ?></textarea></label>
+                <button class="btn btn-sm" type="submit">Save notes</button>
+            </form>
+            <div class="photos">
+                <?php foreach ($photos as $p): ?>
+                    <figure class="photo">
+                        <a href="<?= e(url('/photos/' . $p['id'])) ?>" target="_blank"><img src="<?= e(url('/photos/' . $p['id'])) ?>" alt="<?= e($p['caption'] ?? 'Photo') ?>" loading="lazy"></a>
+                        <figcaption><?= e($p['caption'] ?? '') ?> <span class="muted"><?= e(($p['user_name'] ?? '') . ' · ' . date('d M H:i', strtotime($p['created_at']))) ?></span></figcaption>
+                        <form method="post" action="<?= e(url('/photos/' . $p['id'] . '/delete')) ?>" data-confirm="Delete this photo?"><?= csrf_field() ?><button class="btn-icon" title="Delete" aria-label="Delete">×</button></form>
+                    </figure>
+                <?php endforeach; ?>
+            </div>
+            <form method="post" action="<?= e(url('/bootcamps/' . $b['id'] . '/photos')) ?>" enctype="multipart/form-data" class="photo-upload">
+                <?= csrf_field() ?>
+                <label class="btn btn-sm btn-ghost file-btn">📷 Add photos<input type="file" name="photos[]" accept="image/*" multiple required onchange="this.form.querySelector('.file-name').textContent = this.files.length + ' selected'"></label>
+                <span class="file-name small muted"></span>
+                <input type="text" name="caption" maxlength="255" placeholder="Caption (optional)">
+                <button class="btn btn-sm" type="submit">Upload</button>
+            </form>
+        </section>
+
+        <details class="card history" id="history">
+            <summary><h2 class="card-title">History <span class="muted small">(<?= count($activity) ?>)</span></h2></summary>
+            <?php if (!$activity): ?>
+                <p class="muted small">No changes recorded yet.</p>
+            <?php else: ?>
+                <ol class="timeline">
+                    <?php foreach ($activity as $a): ?>
+                        <li>
+                            <span class="tl-time"><?= e(date('d M H:i', strtotime($a['created_at']))) ?></span>
+                            <span class="tl-who"><?= e($a['user_name'] ?? 'System') ?><?php if ($a['user_role'] === 'client'): ?> <span class="tag">team</span><?php endif; ?></span>
+                            <span class="tl-what"><?= e($a['action']) ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ol>
+            <?php endif; ?>
+        </details>
     </div>
 
     <aside class="col-side">
+        <?php if ($feedback): ?>
+            <section class="card card-accent" id="feedback">
+                <h2 class="card-title">Team feedback</h2>
+                <div class="stars-big" title="<?= (int) $feedback['rating'] ?>/5"><?= stars((int) $feedback['rating']) ?></div>
+                <?php if ($feedback['comment']): ?><p>“<?= nl2br_e($feedback['comment']) ?>”</p><?php endif; ?>
+                <p class="small muted"><?= e($feedback['user_name'] ?? '') ?> · <?= e(fmt_dt($feedback['created_at'])) ?></p>
+            </section>
+        <?php endif; ?>
 
         <section class="card">
             <div class="card-head"><h2 class="card-title">Team accounts</h2><a class="link" href="<?= e(url('/teams/' . $b['team_id'])) ?>">Team →</a></div>

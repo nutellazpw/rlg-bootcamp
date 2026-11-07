@@ -13,6 +13,12 @@ Svetla i tamna tema (prekidač ☀/☾ u headeru, pamti se po uređaju). Čist P
 - Inventar: ukupne količine. Upozorava kad rezervacije ili odobreni dodaci pređu stanje u nekom periodu (i uživo u formi)
 - Hoteli, pića (lista iz koje ekipe biraju), nalozi osoblja, podešavanja
 - Tiketi: chat sa ekipom, statusi, dodela radniku
+- Čekliste (samo osoblje): *Room setup* pre dolaska i *Pickup & check-out* posle — stavke se prave automatski iz rezervacije (oprema, dodaci, stolice, pića), mogu se dodati i svoje. Kad je setup gotov, jedno dugme prebacuje status u „Room ready“ i obaveštava ekipu
+- Check-out beleške o oštećenjima + fotografije (čuvaju se u `storage/uploads`, vidi ih samo osoblje)
+- Štampa (*Print* meni na bootcampu): **Room setup order** (šta se nosi i montira u koju sobu, stolice po broju, pića, potpisi), **Pickup order** i **Bootcamp report** na kraju (dodatna oprema sa danima i „unit-days“, tiketi, check-out, slike, ocena ekipe)
+- Istorija izmena po bootcampu (ko je šta i kada promenio — osoblje i ekipa)
+- Automatski podsetnici (9–21h): 3 dana pre početka menadžeru ako nema sobe (ponovo dan pred), ekipi ako nije izabrala pića/stolice (push + email), na dan početka osoblju ako setup čeklista nije gotova
+- Ocena: dan posle kraja bootcampa ekipa dobija zahtev za ocenu (1–5 ★ + komentar), menadžeri dobijaju obaveštenje
 
 **Uloge**
 

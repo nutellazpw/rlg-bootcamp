@@ -14,6 +14,9 @@ function run_cron_tasks(): string
     $n = send_ticket_reminders();
     $out[] = "ticket reminders sent: $n";
 
+    $n = send_bootcamp_reminders();
+    $out[] = "bootcamp reminders sent: $n";
+
     // Housekeeping once per hour
     if ((int) date('i') === 0 || setting('last_cleanup', '') < date('Y-m-d H', strtotime('-1 hour'))) {
         q('DELETE FROM notifications WHERE created_at < (NOW() - INTERVAL 120 DAY)');

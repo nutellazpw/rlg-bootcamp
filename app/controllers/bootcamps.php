@@ -77,6 +77,7 @@ function bootcamps_save(?array $existing, array $me): array
         'client_info' => (string) input('client_info') ?: null,
         'updated_at' => now(),
     ];
+    $oldItems = $existing ? array_column(all('SELECT e.name, bi.qty FROM bootcamp_items bi JOIN equipment e ON e.id = bi.equipment_id WHERE bi.bootcamp_id = ? AND bi.qty > 0', [$existing['id']]), 'qty', 'name') : [];
     $db = db();
     $db->beginTransaction();
     if ($existing) {
@@ -99,6 +100,46 @@ function bootcamps_save(?array $existing, array $me): array
     // Drop chair configs beyond the new chair count
     q('DELETE FROM chair_configs WHERE bootcamp_id = ? AND chair_no > ?', [$id, bootcamp_chair_count($id)]);
     $db->commit();
+
+    // History
+    if (!$existing) {
+        log_activity($id, 'Created the bootcamp');
+    } else {
+        $changes = [];
+        $names = fn ($table, $v) => (string) scalar("SELECT name FROM $table WHERE id = ?", [$v]);
+        if ((int) $existing['team_id'] !== $teamId) {
+            $changes[] = 'team → ' . $names('teams', $teamId);
+        }
+        if ((int) $existing['hotel_id'] !== $hotelId) {
+            $changes[] = 'hotel → ' . $names('hotels', $hotelId);
+        }
+        if ((string) $existing['room'] !== (string) $data['room']) {
+            $changes[] = 'room ' . ($existing['room'] ?: '—') . ' → ' . ($data['room'] ?: '—');
+        }
+        if ($existing['start_date'] !== $start || $existing['end_date'] !== $end) {
+            $changes[] = 'dates ' . fmt_range($existing['start_date'], $existing['end_date']) . ' → ' . fmt_range($start, $end);
+        }
+        if ($existing['status'] !== $status) {
+            $changes[] = 'status → ' . BOOTCAMP_STATUSES[$status];
+        }
+        $newItems = array_column(all('SELECT e.name, bi.qty FROM bootcamp_items bi JOIN equipment e ON e.id = bi.equipment_id WHERE bi.bootcamp_id = ? AND bi.qty > 0', [$id]), 'qty', 'name');
+        foreach (array_unique(array_merge(array_keys($oldItems), array_keys($newItems))) as $name) {
+            $o = (int) ($oldItems[$name] ?? 0);
+            $n = (int) ($newItems[$name] ?? 0);
+            if ($o !== $n) {
+                $changes[] = "$name $o → $n";
+            }
+        }
+        if ((string) $existing['client_info'] !== (string) $data['client_info']) {
+            $changes[] = 'info for the team';
+        }
+        if ((string) $existing['staff_notes'] !== (string) $data['staff_notes']) {
+            $changes[] = 'internal notes';
+        }
+        if ($changes) {
+            log_activity($id, 'Edited: ' . implode('; ', $changes));
+        }
+    }
 
     // Client notifications
     $team = team_user_ids($teamId);
@@ -176,7 +217,13 @@ function bootcamps_show(int $id): void
     foreach ($items as $it) {
         $wanted[(int) $it['id']] = (int) $it['qty'];
     }
+    checklist_sync($b);
     view('bootcamps/show', [
+        'setupItems' => checklist_items($id, 'setup'),
+        'checkoutItems' => checklist_items($id, 'checkout'),
+        'photos' => all('SELECT p.*, u.name AS user_name FROM bootcamp_photos p LEFT JOIN users u ON u.id = p.user_id WHERE p.bootcamp_id = ? ORDER BY p.id', [$id]),
+        'feedback' => bootcamp_feedback($id),
+        'activity' => bootcamp_activity($id),
         'title' => $b['team_name'] . ' bootcamp',
         'b' => $b,
         'items' => $items,
@@ -202,6 +249,16 @@ function bootcamps_quick(int $id): void
     }
     $room = mb_substr((string) input('room', (string) $b['room']), 0, 60) ?: null;
     update('bootcamps', ['status' => $status, 'room' => $room, 'updated_at' => now()], 'id = ?', [$id]);
+    $changes = [];
+    if ((string) $b['room'] !== (string) $room) {
+        $changes[] = 'room ' . ($b['room'] ?: '—') . ' → ' . ($room ?: '—');
+    }
+    if ($b['status'] !== $status) {
+        $changes[] = 'status → ' . BOOTCAMP_STATUSES[$status];
+    }
+    if ($changes) {
+        log_activity($id, 'Updated ' . implode(', ', $changes));
+    }
     $team = team_user_ids((int) $b['team_id']);
     if (!$b['room'] && $room) {
         notify($team, 'Your room is assigned', $b['hotel_name'] . ' · room ' . $room, '/my/bootcamp/' . $id);
@@ -226,7 +283,11 @@ function bootcamps_delete(int $id): void
     }
     q('UPDATE tickets SET bootcamp_id = NULL WHERE bootcamp_id = ?', [$id]);
     q('DELETE FROM bootcamps WHERE id = ?', [$id]);
+    foreach (['checklist_items', 'bootcamp_reminders', 'feedback'] as $t) {
+        q("DELETE FROM $t WHERE bootcamp_id = ?", [$id]);
+    }
     $db->commit();
+    log_activity(null, 'Deleted bootcamp #' . $id . ' (' . $b['team_name'] . ', ' . fmt_range($b['start_date'], $b['end_date']) . ')');
     flash('success', 'Bootcamp for ' . $b['team_name'] . ' deleted.');
     redirect('/bootcamps');
 }
@@ -236,6 +297,8 @@ function bootcamps_drinks(int $id): void
     require_staff();
     bootcamp_find($id) ?? not_found();
     save_bootcamp_drinks($id, (array) ($_POST['drinks'] ?? []));
+    $names = array_column(bootcamp_drinks($id), 'name');
+    log_activity($id, 'Changed drinks: ' . ($names ? implode(', ', $names) : 'none'));
     flash('success', 'Drinks saved.');
     redirect('/bootcamps/' . $id . '#drinks');
 }
@@ -248,6 +311,7 @@ function save_bootcamp_drinks(int $bootcampId, array $ids): void
             insert('bootcamp_drinks', ['bootcamp_id' => $bootcampId, 'drink_id' => $drinkId]);
         }
     }
+    update('bootcamps', ['drinks_saved_at' => now()], 'id = ?', [$bootcampId]);
 }
 
 function bootcamps_chairs(int $id): void
@@ -255,6 +319,7 @@ function bootcamps_chairs(int $id): void
     require_staff();
     bootcamp_find($id) ?? not_found();
     save_chair_configs($id, (array) ($_POST['chair'] ?? []));
+    log_activity($id, 'Changed chairs: ' . chair_summary_text(bootcamp_chairs($id)));
     flash('success', 'Chair setup saved.');
     redirect('/bootcamps/' . $id . '#chairs');
 }
@@ -270,6 +335,7 @@ function save_chair_configs(int $bootcampId, array $posted): void
         }
         insert('chair_configs', ['bootcamp_id' => $bootcampId, 'chair_no' => $i, 'armrests' => $v]);
     }
+    update('bootcamps', ['chairs_saved_at' => now()], 'id = ?', [$bootcampId]);
 }
 
 /** Manager adds extra equipment directly (already approved). */
@@ -292,6 +358,7 @@ function bootcamps_add_extra(int $id): void
         'decided_by' => $me['id'], 'decided_at' => now(),
         'bill_from' => $from, 'bill_to' => $to,
     ]);
+    log_activity($id, 'Added extra ' . $qty . '× ' . $eq['name'] . ' (' . fmt_date($from, 'd M') . ' → ' . fmt_date($to, 'd M') . ')');
     $warnings = availability_warnings($from, $to, [(int) $eq['id'] => $qty]);
     if ($warnings) {
         flash('warning', 'Added, but: ' . implode(' ', $warnings));
@@ -321,12 +388,14 @@ function bootcamps_decide_extra(int $id): void
             'bill_from' => $from, 'bill_to' => $to,
             'staff_note' => $note,
         ], 'id = ?', [$id]);
+        log_activity((int) $b['id'], 'Approved extra ' . $qty . '× ' . $x['equipment_name'] . ' (' . fmt_date($from, 'd M') . ' → ' . fmt_date($to, 'd M') . ')');
         notify(team_user_ids((int) $b['team_id']), 'Request approved: ' . $qty . '× ' . $x['equipment_name'], $note ?? 'We will bring it to your room.', '/my/bootcamp/' . $b['id']);
         notify_staff('Deliver ' . $qty . '× ' . $x['equipment_name'], $b['team_name'] . ' · ' . $b['hotel_name'] . ($b['room'] ? ' · room ' . $b['room'] : ''), '/bootcamps/' . $b['id'] . '#extras', true, (int) $me['id']);
         $warnings = availability_warnings($from, $to, [(int) $x['equipment_id'] => $qty], null, $id);
         flash($warnings ? 'warning' : 'success', $warnings ? 'Approved, but: ' . implode(' ', $warnings) : 'Request approved.');
     } elseif ($decision === 'reject') {
         update('extra_requests', ['status' => 'rejected', 'decided_by' => $me['id'], 'decided_at' => now(), 'staff_note' => $note], 'id = ?', [$id]);
+        log_activity((int) $b['id'], 'Declined extra ' . $x['qty'] . '× ' . $x['equipment_name']);
         notify(team_user_ids((int) $b['team_id']), 'Request declined: ' . $x['equipment_name'], $note ?? 'Contact support for details.', '/my/bootcamp/' . $b['id']);
         flash('success', 'Request declined.');
     } elseif ($decision === 'cancel') {
@@ -343,11 +412,14 @@ function bootcamps_update_extra(int $id): void
     $x = one('SELECT * FROM extra_requests WHERE id = ?', [$id]) ?? not_found();
     $b = bootcamp_find((int) $x['bootcamp_id']) ?? not_found();
     $action = (string) input('action', 'save');
+    $eqName = (string) scalar('SELECT name FROM equipment WHERE id = ?', [$x['equipment_id']]);
     if ($action === 'remove') {
         update('extra_requests', ['status' => 'cancelled', 'decided_at' => now()], 'id = ?', [$id]);
+        log_activity((int) $b['id'], 'Deleted extra ' . $x['qty'] . '× ' . $eqName);
         flash('success', 'Removed from the log.');
     } elseif ($action === 'taken_out') {
         update('extra_requests', ['bill_to' => max(date('Y-m-d'), (string) ($x['bill_from'] ?: $b['start_date']))], 'id = ?', [$id]);
+        log_activity((int) $b['id'], 'Extra ' . $eqName . ' taken out of the room today');
         flash('success', 'Marked as taken out of the room today.');
     } else {
         $from = input_date('bill_from') ?? ($x['bill_from'] ?: $b['start_date']);
@@ -355,7 +427,9 @@ function bootcamps_update_extra(int $id): void
         if ($to < $from) {
             flash('error', 'End date is before start date.');
         } else {
-            update('extra_requests', ['qty' => max(1, input_int('qty', (int) $x['qty'])), 'bill_from' => $from, 'bill_to' => $to], 'id = ?', [$id]);
+            $qty = max(1, input_int('qty', (int) $x['qty']));
+            update('extra_requests', ['qty' => $qty, 'bill_from' => $from, 'bill_to' => $to], 'id = ?', [$id]);
+            log_activity((int) $b['id'], 'Edited extra ' . $eqName . ': ' . $qty . '×, ' . fmt_date($from, 'd M') . ' → ' . fmt_date($to, 'd M'));
             flash('success', 'Saved.');
         }
     }
@@ -367,6 +441,7 @@ function bootcamps_deliver_extra(int $id): void
     require_staff();
     $x = one('SELECT * FROM extra_requests WHERE id = ?', [$id]) ?? not_found();
     update('extra_requests', ['delivered_at' => $x['delivered_at'] ? null : now()], 'id = ?', [$id]);
+    log_activity((int) $x['bootcamp_id'], ($x['delivered_at'] ? 'Unmarked delivery of extra ' : 'Delivered extra ') . $x['qty'] . '× ' . scalar('SELECT name FROM equipment WHERE id = ?', [$x['equipment_id']]));
     redirect('/bootcamps/' . $x['bootcamp_id'] . '#extras');
 }
 

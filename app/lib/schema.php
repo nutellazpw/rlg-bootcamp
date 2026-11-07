@@ -198,6 +198,58 @@ function migrations(): array
                 KEY idx_user (user_id)
             ) $t",
         ],
+        2 => [
+            "CREATE TABLE IF NOT EXISTS checklist_items (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                bootcamp_id INT UNSIGNED NOT NULL,
+                phase VARCHAR(10) NOT NULL,
+                item_key VARCHAR(40) NULL,
+                label VARCHAR(190) NOT NULL,
+                detail VARCHAR(500) NULL,
+                sort INT NOT NULL DEFAULT 0,
+                done_by INT UNSIGNED NULL,
+                done_at DATETIME NULL,
+                UNIQUE KEY uq_key (bootcamp_id, phase, item_key),
+                KEY idx_bootcamp (bootcamp_id, phase)
+            ) $t",
+            "CREATE TABLE IF NOT EXISTS bootcamp_reminders (
+                bootcamp_id INT UNSIGNED NOT NULL,
+                kind VARCHAR(30) NOT NULL,
+                sent_at DATETIME NOT NULL,
+                PRIMARY KEY (bootcamp_id, kind)
+            ) $t",
+            "CREATE TABLE IF NOT EXISTS feedback (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                bootcamp_id INT UNSIGNED NOT NULL,
+                user_id INT UNSIGNED NULL,
+                rating TINYINT NOT NULL,
+                comment TEXT NULL,
+                created_at DATETIME NOT NULL,
+                UNIQUE KEY uq_bootcamp (bootcamp_id)
+            ) $t",
+            "CREATE TABLE IF NOT EXISTS activity_log (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                bootcamp_id INT UNSIGNED NULL,
+                user_id INT UNSIGNED NULL,
+                action VARCHAR(500) NOT NULL,
+                created_at DATETIME NOT NULL,
+                KEY idx_bootcamp (bootcamp_id, id)
+            ) $t",
+            "CREATE TABLE IF NOT EXISTS bootcamp_photos (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                bootcamp_id INT UNSIGNED NOT NULL,
+                user_id INT UNSIGNED NULL,
+                file VARCHAR(190) NOT NULL,
+                mime VARCHAR(40) NOT NULL,
+                caption VARCHAR(255) NULL,
+                created_at DATETIME NOT NULL,
+                KEY idx_bootcamp (bootcamp_id)
+            ) $t",
+            "ALTER TABLE bootcamps
+                ADD COLUMN drinks_saved_at DATETIME NULL,
+                ADD COLUMN chairs_saved_at DATETIME NULL,
+                ADD COLUMN checkout_notes TEXT NULL",
+        ],
     ];
 }
 

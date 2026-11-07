@@ -4,3 +4,5 @@ storage/logs/*
 storage/cron.lock
 .DS_Store
 /dev/
+storage/uploads/*
+!storage/uploads/.gitkeep
