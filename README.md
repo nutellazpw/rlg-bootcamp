@@ -59,7 +59,7 @@ Manager i administrator dobijaju sve tikete. Klijent dobija notifikaciju kad pod
    * * * * * /usr/local/bin/php /home/USER/guest.relog.gg/cron/run.php >/dev/null 2>&1
    ```
    Ako PHP CLI nije dostupan: postavi `cron_key` u configu i koristi
-   `curl -s "https://guest.relog.gg/cron?key=TVOJ_KLJUC" >/dev/null`.
+   `curl -s "https://guest.relog.gg/run-cron?key=TVOJ_KLJUC" >/dev/null`.
 7. **Telegram bot:** @BotFather → `/newbot` → token. Dodaj bota u grupu podrške, pošalji poruku u grupu i otvori
    `https://api.telegram.org/bot<TOKEN>/getUpdates` → `chat.id` (počinje sa `-100…`). Upiši oba u config.
 8. U *Setup → Settings* testiraj email, Telegram i cron.

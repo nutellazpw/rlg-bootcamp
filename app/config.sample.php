@@ -41,7 +41,7 @@ return [
     // Contact address used in Web Push (VAPID) — any address you own.
     'push_contact' => 'mailto:bootcamp@relog.gg',
 
-    // Secret for running the cron over HTTP (https://guest.relog.gg/cron?key=...)
+    // Secret for running the cron over HTTP (https://guest.relog.gg/run-cron?key=...)
     // when cPanel cron with PHP CLI is not an option. Leave empty to disable HTTP cron.
     'cron_key' => '',
 

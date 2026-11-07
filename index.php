@@ -15,7 +15,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 header('X-Content-Type-Options: nosniff');
 
 // Cron over HTTP (optional) — does not need a session
-if ($path === '/cron') {
+if ($path === '/run-cron' || $path === '/cron') {
     $key = trim((string) config('cron_key', ''));
     header('Content-Type: text/plain; charset=utf-8');
     if ($key === '') {

@@ -12,7 +12,8 @@ DirectoryIndex index.php
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
     # Never serve app internals
-    RewriteRule ^(app|cron|storage|sql)(/|$) - [F,L]
+    RewriteRule ^(app|cron|storage|sql)/ - [F,L]
+    RewriteRule ^(app|storage|sql)$ - [F,L]
     RewriteRule (^|/)\. - [F,L]
     RewriteRule ^\.well-known/ - [L]
 
