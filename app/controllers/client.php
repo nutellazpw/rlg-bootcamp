@@ -83,25 +83,22 @@ function client_refill(int $id): void
     $b = client_bootcamp_or_404($u, $id);
     client_guard_open($b);
     $note = trim((string) input('note'));
+    $picked = array_map('intval', (array) ($_POST['refill'] ?? []));
     $lines = [];
-    $total = 0;
-    $posted = (array) ($_POST['qty'] ?? []);
     foreach (all('SELECT id, name FROM drinks ORDER BY sort, name') as $d) {
-        $n = min(99, max(0, (int) ($posted[$d['id']] ?? 0)));
-        if ($n > 0) {
-            $lines[] = '• ' . $d['name'] . ' × ' . $n;
-            $total += $n;
+        if (in_array((int) $d['id'], $picked, true)) {
+            $lines[] = '• ' . $d['name'];
         }
     }
     if (!$lines && $note === '') {
-        flash('error', 'Tell us how many of each drink you used.');
+        flash('error', 'Choose which drinks we should refill.');
         redirect('/my/bootcamp/' . $id . '#refill');
     }
     $body = 'Please refill the fridge' . ($b['room'] ? ' in room ' . $b['room'] : '') . ':'
         . ($lines ? "\n" . implode("\n", $lines) : '')
         . ($note !== '' ? "\n\n" . $note : '');
-    log_activity($id, 'Team requested a drinks refill' . ($lines ? ': ' . implode(', ', array_map(fn ($l) => ltrim($l, '• '), $lines)) : ''));
-    $ticketId = ticket_create($u, (int) $b['team_id'], $id, 'refill', 'Drinks refill' . ($total ? ' (' . $total . ')' : '') . ($b['room'] ? ' · room ' . $b['room'] : ''), $body);
+    log_activity($id, 'Team requested a drinks refill' . ($lines ? ': ' . implode(', ', array_map(fn ($l) => mb_substr($l, 2), $lines)) : ''));
+    $ticketId = ticket_create($u, (int) $b['team_id'], $id, 'refill', 'Drinks refill' . ($b['room'] ? ' · room ' . $b['room'] : ''), $body);
     flash('success', 'Refill requested. We will bring the drinks soon.');
     redirect('/tickets/' . $ticketId);
 }

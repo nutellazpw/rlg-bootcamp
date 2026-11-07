@@ -97,17 +97,10 @@ $chairChanged = count(array_filter($chairs, fn ($c) => $c !== 'keep'));
                 <summary class="btn btn-sm btn-outline">Request refill</summary>
                 <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/refill')) ?>" class="refill-form">
                     <?= csrf_field() ?>
-                    <p class="small muted">How many of each did you use? We will bring the same amount.</p>
-                    <div class="refill-list">
+                    <p class="small muted">What should we refill?</p>
+                    <div class="drink-grid refill-grid">
                         <?php foreach ($drinks as $d): if (!in_array((int) $d['id'], $drinkIds, true)) { continue; } ?>
-                            <label class="refill-row">
-                                <span><?= e($d['name']) ?></span>
-                                <span class="stepper">
-                                    <button type="button" data-step="-1" aria-label="Less">−</button>
-                                    <input type="number" name="qty[<?= (int) $d['id'] ?>]" value="0" min="0" max="99" inputmode="numeric">
-                                    <button type="button" data-step="1" aria-label="More">+</button>
-                                </span>
-                            </label>
+                            <label class="drink"><input type="checkbox" name="refill[]" value="<?= (int) $d['id'] ?>"><span><?= e($d['name']) ?></span></label>
                         <?php endforeach; ?>
                     </div>
                     <input type="text" name="note" maxlength="300" placeholder="Anything else? (optional)">

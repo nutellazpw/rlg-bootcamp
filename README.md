@@ -31,7 +31,7 @@ Svetla i tamna tema (prekidač ☀/☾ u headeru, pamti se po uređaju). Čist P
 
 **Klijent (jedan nalog po ekipi — menadžer ekipe ili glavni igrač)**
 - Vidi svoj bootcamp: hotel, sobu, datume, opremu, info (Wi-Fi itd.) — bez cene
-- Bira pića za frižider i traži dopunu — upisuje koliko je potrošila od svakog pića (otvara tiket „Drinks refill“ sa količinama)
+- Bira pića za frižider i traži dopunu — označi koja pića treba dopuniti (otvara tiket „Drinks refill“)
 - Za svaku stolicu bira ručke: obe ostaju / bez obe / bez leve / bez desne
 - Traži dodatnu opremu (monitor, kameru…). Manager odobrava i upisuje od kog do kog dana je u sobi
 - Otvara tikete i dopisuje se sa podrškom
