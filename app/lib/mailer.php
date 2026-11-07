@@ -43,20 +43,35 @@ function send_mail(string $to, string $subject, string $html): bool
 
 function mail_template(string $heading, string $bodyHtml, ?string $buttonText = null, ?string $buttonUrl = null): string
 {
-    $logo = e(abs_url('/assets/img/logo.png'));
+    // Logo PNG has its own dark background baked in, so it stays readable when mail apps switch to dark mode.
+    $logoFile = APP_ROOT . '/assets/img/email-logo.png';
+    $logo = e(abs_url('/assets/img/email-logo.png') . '?v=' . (is_file($logoFile) ? filemtime($logoFile) : '1'));
+    $font = "font-family:Arial,Helvetica,sans-serif";
     $button = '';
     if ($buttonText && $buttonUrl) {
-        $button = '<p style="margin:28px 0 8px"><a href="' . e($buttonUrl) . '" style="display:inline-block;background:#FF6700;color:#ffffff;text-decoration:none;font-weight:700;text-transform:uppercase;padding:12px 28px;border-radius:0 10px 0 10px;font-family:Arial,sans-serif;font-size:15px">' . e($buttonText) . '</a></p>'
-            . '<p style="color:#8a8a8a;font-size:12px;word-break:break-all">If the button does not work, open this link:<br>' . e($buttonUrl) . '</p>';
+        $button = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:30px 0 10px"><tr>'
+            . '<td bgcolor="#FF6700" style="background:#FF6700;border-radius:0 12px 0 12px">'
+            . '<a href="' . e($buttonUrl) . '" style="display:inline-block;padding:15px 30px;' . $font . ';font-size:17px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;text-transform:uppercase;letter-spacing:.5px">' . e($buttonText) . '</a>'
+            . '</td></tr></table>'
+            . '<p style="margin:18px 0 0;' . $font . ';font-size:13px;line-height:20px;color:#666666">If the button does not work, open this link:<br>'
+            . '<a href="' . e($buttonUrl) . '" style="color:#D45600;word-break:break-all">' . e($buttonUrl) . '</a></p>';
     }
-    return '<!doctype html><html><body style="margin:0;background:#0b0b0b;padding:32px 12px;font-family:Arial,Helvetica,sans-serif">'
-        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">'
-        . '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#151515;border-top:3px solid #FF6700;border-radius:0 14px 0 14px">'
-        . '<tr><td style="padding:28px 32px 8px"><img src="' . $logo . '" alt="Relog Media" height="34" style="display:block"></td></tr>'
-        . '<tr><td style="padding:8px 32px 32px;color:#e6e6e6;font-size:15px;line-height:1.55">'
-        . '<h1 style="color:#ffffff;font-size:22px;text-transform:uppercase;margin:12px 0 16px">' . e($heading) . '</h1>'
-        . $bodyHtml . $button
-        . '</td></tr></table>'
-        . '<p style="color:#6e6e6e;font-size:12px;margin-top:18px">RLG Bootcamp · Relog Media</p>'
-        . '</td></tr></table></body></html>';
+    return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head>'
+        . '<body style="margin:0;padding:0;background:#ececec">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ececec" style="background:#ececec"><tr><td align="center" style="padding:28px 12px">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px">'
+        // header
+        . '<tr><td align="left" bgcolor="#141414" style="background:#141414;padding:18px 28px;border-radius:0 16px 0 0">'
+        . '<img src="' . $logo . '" alt="RLG" width="160" height="54" style="display:block;border:0;width:160px;height:auto">'
+        . '</td></tr>'
+        . '<tr><td height="4" bgcolor="#FF6700" style="background:#FF6700;font-size:0;line-height:0">&nbsp;</td></tr>'
+        // body
+        . '<tr><td bgcolor="#ffffff" style="background:#ffffff;padding:30px 28px 34px;border-radius:0 0 0 16px;' . $font . ';font-size:17px;line-height:27px;color:#1a1a1a">'
+        . '<h1 style="margin:0 0 18px;' . $font . ';font-size:24px;line-height:30px;font-weight:bold;color:#111111;text-transform:uppercase">' . e($heading) . '</h1>'
+        . '<div style="' . $font . ';font-size:17px;line-height:27px;color:#1a1a1a">' . $bodyHtml . '</div>'
+        . $button
+        . '</td></tr>'
+        . '<tr><td align="center" style="padding:18px 10px 0;' . $font . ';font-size:13px;line-height:18px;color:#777777">RLG Bootcamp · Relog Media</td></tr>'
+        . '</table></td></tr></table></body></html>';
 }
