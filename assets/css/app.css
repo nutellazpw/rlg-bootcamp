@@ -40,12 +40,12 @@
 
 /* Light theme — like the day version of relog.gg */
 [data-theme="light"] {
-  --bg: #f2f2f2;
-  --panel: #ffffff;
-  --panel-2: #f7f7f7;
-  --panel-3: #ececec;
-  --line: #e3e3e3;
-  --line-2: #d0d0d0;
+  --bg: #e4e4e7;
+  --panel: #f4f4f5;
+  --panel-2: #ebebee;
+  --panel-3: #dfdfe3;
+  --line: #d4d4d9;
+  --line-2: #bfbfc6;
   --text: #111111;
   --muted: #5c5c5c;
   --dim: #8a8a8a;
@@ -55,9 +55,9 @@
   --danger: #d93636;
   --info: #1f6fd1;
   --shadow: 0 10px 30px rgba(0, 0, 0, .10);
-  --input-bg: #ffffff;
-  --hover: rgba(0, 0, 0, .025);
-  --topbar-bg: rgba(255, 255, 255, .95);
+  --input-bg: #fafafb;
+  --hover: rgba(0, 0, 0, .03);
+  --topbar-bg: rgba(244, 244, 245, .96);
   --strong: #000;
   --shade: rgba(0, 0, 0, .035);
   --cal-ev-text: #111;
@@ -68,7 +68,7 @@
 [data-theme="light"] .badge-pending { color: #9a6400; }
 [data-theme="light"] .badge-cancelled, [data-theme="light"] .badge-rejected { color: #c62828; }
 [data-theme="light"] input[type=date]::-webkit-calendar-picker-indicator { filter: none; }
-[data-theme="light"] .card { box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
+[data-theme="light"] .card, [data-theme="light"] .stat { box-shadow: 0 1px 3px rgba(0, 0, 0, .06); }
 [data-theme="light"] .alert { background: var(--panel); }
 [data-theme="light"] .msg-system { color: var(--muted); }
 .logo-on-light { display: none !important; }

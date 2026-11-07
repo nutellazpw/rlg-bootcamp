@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="<?= e(asset('img/icon-192.png')) ?>">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<script>(function(){var t='light';try{t=localStorage.getItem('rlg-theme')||'light'}catch(e){}document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light'?'#ffffff':'#0b0b0b';})();</script>
+<script>(function(){var t='light';try{t=localStorage.getItem('rlg-theme')||'light'}catch(e){}document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light'?'#f4f4f5':'#0b0b0b';})();</script>
 <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
 </head>
 <body class="auth-body">

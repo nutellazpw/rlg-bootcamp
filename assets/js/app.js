@@ -53,7 +53,7 @@
     document.documentElement.setAttribute('data-theme', t);
     store.set('rlg-theme', t);
     const m = $('meta[name="theme-color"]');
-    if (m) m.content = t === 'light' ? '#ffffff' : '#0b0b0b';
+    if (m) m.content = t === 'light' ? '#f4f4f5' : '#0b0b0b';
   }));
 
   // Dropdowns (print menu)
