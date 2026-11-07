@@ -117,7 +117,7 @@ ul.plain { margin: 6px 0 0; padding-left: 18px; }
 }
 .topbar-inner { max-width: 1320px; margin: 0 auto; padding: 14px 22px; display: flex; align-items: center; gap: 20px; }
 .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.brand img { height: 32px; width: auto; display: block; }
+.brand img { height: 36px; width: auto; display: block; }
 .brand-tag {
   font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .14em;
   color: var(--orange); border: 1.5px solid var(--orange); padding: 2px 8px 1px; border-radius: var(--r);
