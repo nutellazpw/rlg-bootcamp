@@ -1,0 +1,6 @@
+app/config.php
+storage/logs/*
+!storage/logs/.gitkeep
+storage/cron.lock
+.DS_Store
+/dev/

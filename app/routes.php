@@ -1,0 +1,83 @@
+<?php
+// [methods, regex path, "controller@function"]
+$GP = ['GET', 'POST'];
+
+return [
+    ['GET', '/', 'auth@home'],
+    [$GP, '/login', 'auth@login'],
+    ['POST', '/logout', 'auth@logout'],
+    [$GP, '/forgot-password', 'auth@forgot'],
+    [$GP, '/set-password', 'auth@set_password'],
+    [$GP, '/setup', 'auth@setup'],
+
+    // Staff
+    ['GET', '/dashboard', 'dashboard@index'],
+    ['GET', '/calendar', 'dashboard@calendar'],
+
+    ['GET', '/bootcamps', 'bootcamps@index'],
+    [$GP, '/bootcamps/new', 'bootcamps@create'],
+    ['GET', '/bootcamps/(\d+)', 'bootcamps@show'],
+    [$GP, '/bootcamps/(\d+)/edit', 'bootcamps@edit'],
+    ['POST', '/bootcamps/(\d+)/quick', 'bootcamps@quick'],
+    ['POST', '/bootcamps/(\d+)/delete', 'bootcamps@delete'],
+    ['POST', '/bootcamps/(\d+)/drinks', 'bootcamps@drinks'],
+    ['POST', '/bootcamps/(\d+)/chairs', 'bootcamps@chairs'],
+    ['POST', '/bootcamps/(\d+)/extras', 'bootcamps@add_extra'],
+    ['POST', '/extras/(\d+)/decide', 'bootcamps@decide_extra'],
+    ['POST', '/extras/(\d+)/delivered', 'bootcamps@deliver_extra'],
+    ['POST', '/api/availability', 'bootcamps@availability'],
+
+    ['GET', '/teams', 'teams@index'],
+    [$GP, '/teams/new', 'teams@create'],
+    ['GET', '/teams/(\d+)', 'teams@show'],
+    [$GP, '/teams/(\d+)/edit', 'teams@edit'],
+    ['POST', '/teams/(\d+)/accounts', 'teams@add_account'],
+
+    ['GET', '/users', 'users@index'],
+    ['POST', '/users', 'users@create'],
+    ['POST', '/users/(\d+)', 'users@update'],
+    ['POST', '/users/(\d+)/invite', 'users@resend_invite'],
+    ['POST', '/users/(\d+)/toggle', 'users@toggle'],
+
+    ['GET', '/hotels', 'catalog@hotels'],
+    ['POST', '/hotels', 'catalog@hotel_save'],
+    ['POST', '/hotels/(\d+)', 'catalog@hotel_save'],
+    ['GET', '/inventory', 'catalog@inventory'],
+    ['POST', '/inventory', 'catalog@equipment_save'],
+    ['POST', '/inventory/(\d+)', 'catalog@equipment_save'],
+    ['GET', '/drinks', 'catalog@drinks'],
+    ['POST', '/drinks', 'catalog@drink_save'],
+    ['POST', '/drinks/(\d+)', 'catalog@drink_save'],
+    [$GP, '/settings', 'catalog@settings'],
+
+    // Tickets (staff + clients)
+    ['GET', '/tickets', 'tickets@index'],
+    [$GP, '/tickets/new', 'tickets@create'],
+    ['GET', '/tickets/(\d+)', 'tickets@show'],
+    ['POST', '/tickets/(\d+)/reply', 'tickets@reply'],
+    ['POST', '/tickets/(\d+)/update', 'tickets@update'],
+    ['GET', '/tickets/(\d+)/messages', 'tickets@messages'],
+
+    // Client
+    ['GET', '/my', 'client@home'],
+    ['GET', '/my/bootcamp/(\d+)', 'client@bootcamp'],
+    ['POST', '/my/bootcamp/(\d+)/drinks', 'client@drinks'],
+    ['POST', '/my/bootcamp/(\d+)/refill', 'client@refill'],
+    ['POST', '/my/bootcamp/(\d+)/chairs', 'client@chairs'],
+    ['POST', '/my/bootcamp/(\d+)/extras', 'client@request_extra'],
+    ['POST', '/my/extras/(\d+)/cancel', 'client@cancel_extra'],
+
+    // Everyone
+    [$GP, '/profile', 'account@profile'],
+    ['GET', '/notifications', 'account@notifications'],
+    ['POST', '/notifications/read-all', 'account@read_all'],
+    ['GET', '/n/(\d+)', 'account@open_notification'],
+    ['GET', '/api/status', 'account@status'],
+
+    // Web push
+    ['GET', '/api/push/key', 'push@key'],
+    ['POST', '/api/push/subscribe', 'push@subscribe'],
+    ['POST', '/api/push/unsubscribe', 'push@unsubscribe'],
+    ['POST', '/api/push/pending', 'push@pending'],
+    ['POST', '/api/push/test', 'push@test'],
+];

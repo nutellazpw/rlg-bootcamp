@@ -1,0 +1,174 @@
+<?php
+$today = date('Y-m-d');
+$total = days_between($b['start_date'], $b['end_date']);
+if ($today < $b['start_date']) {
+    $daysTo = days_between($today, $b['start_date']) - 1;
+    $when = $daysTo === 1 ? 'Starts tomorrow' : 'Starts in ' . $daysTo . ' days';
+    $progress = 0;
+} elseif ($today > $b['end_date']) {
+    $when = 'Finished';
+    $progress = 100;
+} else {
+    $day = days_between($b['start_date'], $today);
+    $when = 'Day ' . $day . ' of ' . $total;
+    $progress = (int) round($day / $total * 100);
+}
+$chairChanged = count(array_filter($chairs, fn ($c) => $c !== 'keep'));
+?>
+<section class="hero">
+    <div class="hero-main">
+        <span class="hero-kicker"><?= e($b['team_name']) ?> · Bootcamp</span>
+        <h1 class="hero-title"><?= e($b['hotel_name']) ?></h1>
+        <p class="hero-sub"><?= e($b['hotel_address'] ? $b['hotel_address'] . ', ' : '') ?><?= e($b['hotel_city']) ?></p>
+        <div class="hero-meta">
+            <div><span class="label">Dates</span><strong><?= e(fmt_range($b['start_date'], $b['end_date'])) ?></strong></div>
+            <div><span class="label">Status</span><?= status_badge($b['status'], BOOTCAMP_STATUSES) ?></div>
+            <div><span class="label"><?= e($when) ?></span><div class="progress"><i style="width:<?= $progress ?>%"></i></div></div>
+        </div>
+    </div>
+    <div class="hero-room">
+        <span class="label">Room</span>
+        <strong><?= $b['room'] ? e($b['room']) : '—' ?></strong>
+        <?php if (!$b['room']): ?><small>Assigned before arrival</small><?php endif; ?>
+    </div>
+</section>
+
+<nav class="subnav">
+    <a href="#room">Room</a><a href="#drinks">Drinks</a><a href="#chairs">Chairs</a><a href="#extras">Extras</a><a href="#support">Support</a>
+</nav>
+
+<?php if ($b['client_info']): ?>
+    <section class="card card-accent">
+        <h2 class="card-title">Info from Relog</h2>
+        <p><?= nl2br_e($b['client_info']) ?></p>
+    </section>
+<?php endif; ?>
+
+<section class="card" id="room">
+    <h2 class="card-title">Your setup</h2>
+    <?php if (!$items): ?>
+        <p class="muted">Equipment details will appear here.</p>
+    <?php else: ?>
+        <div class="equip-chips">
+            <?php foreach ($items as $it): ?>
+                <div class="equip-chip"><span class="equip-qty"><?= (int) $it['qty'] ?>×</span><span><?= e($it['name']) ?><?php if ($it['spec']): ?><small><?= e($it['spec']) ?></small><?php endif; ?></span></div>
+            <?php endforeach; ?>
+            <?php foreach ($extras as $x): if ($x['status'] !== 'approved') { continue; } ?>
+                <div class="equip-chip equip-extra"><span class="equip-qty">+<?= (int) $x['qty'] ?></span><span><?= e($x['equipment_name']) ?><small>extra</small></span></div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</section>
+
+<div class="grid-2">
+    <section class="card" id="drinks">
+        <div class="card-head"><h2 class="card-title">Drinks in your fridge</h2></div>
+        <p class="muted small">Choose what you want in the room. Drinks are included — we keep the fridge stocked.</p>
+        <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/drinks')) ?>">
+            <?= csrf_field() ?>
+            <?php partial('client/_drinks', ['drinks' => $drinks, 'drinkIds' => $drinkIds]); ?>
+            <?php if ($open): ?><button class="btn btn-sm" type="submit">Save drinks</button><?php endif; ?>
+        </form>
+        <?php if ($open && $drinkIds): ?>
+            <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/refill')) ?>" class="refill-form">
+                <?= csrf_field() ?>
+                <input type="text" name="note" maxlength="300" placeholder="Anything specific? (optional)">
+                <button class="btn btn-sm btn-outline" type="submit">Request refill</button>
+            </form>
+        <?php endif; ?>
+    </section>
+
+    <section class="card" id="extras">
+        <h2 class="card-title">Extra equipment</h2>
+        <?php if ($extras): ?>
+            <div class="list list-compact">
+                <?php foreach ($extras as $x): ?>
+                    <div class="list-row">
+                        <div class="list-main">
+                            <div class="list-title"><?= (int) $x['qty'] ?>× <?= e($x['equipment_name']) ?></div>
+                            <div class="list-sub"><?= e(fmt_dt($x['requested_at'])) ?><?php if ($x['staff_note']): ?> · <?= e($x['staff_note']) ?><?php endif; ?><?php if ($x['status'] === 'approved' && $x['bill_from']): ?> · from <?= e(fmt_date($x['bill_from'], 'd M')) ?><?php endif; ?></div>
+                        </div>
+                        <div class="list-side">
+                            <?php if ($x['status'] === 'approved' && $x['delivered_at']): ?><span class="badge badge-completed">Delivered</span>
+                            <?php else: ?><?= status_badge($x['status'], EXTRA_STATUSES) ?><?php endif; ?>
+                            <?php if ($x['status'] === 'pending'): ?>
+                                <form method="post" action="<?= e(url('/my/extras/' . $x['id'] . '/cancel')) ?>"><?= csrf_field() ?><button class="btn btn-xs btn-ghost">Cancel</button></form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        <?php if ($open && $catalog): ?>
+            <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/extras')) ?>" class="form extra-form">
+                <?= csrf_field() ?>
+                <div class="form-grid form-grid-extra">
+                    <label class="field"><span>Item</span>
+                        <select name="equipment_id" required>
+                            <?php foreach ($catalog as $eq): ?>
+                                <option value="<?= (int) $eq['id'] ?>"><?= e($eq['name']) ?><?= $showPrices && $eq['price_per_day'] !== null ? ' — ' . e(money($eq['price_per_day'])) . '/day' : '' ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label class="field"><span>Qty</span><input type="number" name="qty" value="1" min="1" max="20"></label>
+                </div>
+                <label class="field"><span>Note <small>(optional)</small></span><input type="text" name="note" maxlength="500" placeholder="e.g. for the coach, from tomorrow"></label>
+                <button class="btn btn-sm" type="submit">Request</button>
+                <p class="hint">Extra equipment is charged per day. The bootcamp manager confirms each request.</p>
+            </form>
+        <?php elseif ($open): ?>
+            <p class="muted small">Contact support if you need extra equipment.</p>
+        <?php endif; ?>
+    </section>
+</div>
+
+<section class="card" id="chairs">
+    <div class="card-head">
+        <h2 class="card-title">Chairs · armrests</h2>
+        <span class="muted small"><?= count($chairs) ?> chairs<?= $chairChanged ? ' · ' . $chairChanged . ' changed' : '' ?></span>
+    </div>
+    <?php if (!$chairs): ?>
+        <p class="muted">No chairs in your booking.</p>
+    <?php else: ?>
+        <p class="muted small">Choose which armrests to remove on each chair. We will set them up before you arrive.</p>
+        <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/chairs')) ?>">
+            <?= csrf_field() ?>
+            <?php partial('client/_chairs', ['chairs' => $chairs]); ?>
+            <?php if ($open): ?><button class="btn btn-sm" type="submit">Save chairs</button><?php endif; ?>
+        </form>
+    <?php endif; ?>
+</section>
+
+<section class="card" id="support">
+    <div class="card-head">
+        <h2 class="card-title">Support</h2>
+        <a class="btn btn-sm" href="<?= e(url('/tickets/new', ['bootcamp' => $b['id']])) ?>">+ New ticket</a>
+    </div>
+    <?php if (!$tickets): ?>
+        <p class="muted small">Something not working or missing in the room? Open a ticket — our team is notified immediately.</p>
+    <?php else: ?>
+        <div class="list">
+            <?php foreach ($tickets as $t): ?>
+                <a class="list-row" href="<?= e(url('/tickets/' . $t['id'])) ?>">
+                    <span class="cat-dot cat-<?= e($t['category']) ?>"></span>
+                    <div class="list-main"><div class="list-title"><?= e($t['subject']) ?></div><div class="list-sub"><?= e(time_ago($t['updated_at'])) ?></div></div>
+                    <div class="list-side"><?= status_badge($t['status'], TICKET_STATUSES) ?></div>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</section>
+
+<?php if ($others): ?>
+    <section class="card">
+        <h2 class="card-title">Other bootcamps</h2>
+        <div class="list">
+            <?php foreach ($others as $o): ?>
+                <a class="list-row" href="<?= e(url('/my/bootcamp/' . $o['id'])) ?>">
+                    <div class="list-main"><div class="list-title"><?= e($o['hotel_name']) ?></div><div class="list-sub"><?= e(fmt_range($o['start_date'], $o['end_date'])) ?></div></div>
+                    <div class="list-side"><?= status_badge($o['status'], BOOTCAMP_STATUSES) ?></div>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </section>
+<?php endif; ?>

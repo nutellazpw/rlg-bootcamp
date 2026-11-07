@@ -1,0 +1,38 @@
+# RLG Bootcamp — guest.relog.gg
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS (behind Cloudflare / cPanel AutoSSL)
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Never serve app internals
+    RewriteRule ^(app|cron|storage|sql)(/|$) - [F,L]
+    RewriteRule (^|/)\. - [F,L]
+    RewriteRule ^\.well-known/ - [L]
+
+    # Static files as-is, everything else to the front controller
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    <FilesMatch "^sw\.js$">
+        Header set Cache-Control "no-cache"
+        Header set Service-Worker-Allowed "/"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+    AddType font/woff2 .woff2
+</IfModule>
