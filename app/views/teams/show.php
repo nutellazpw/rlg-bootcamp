@@ -65,5 +65,16 @@
                 </details>
             <?php endif; ?>
         </section>
+        <?php if (can_manage()): ?>
+            <section class="card card-danger" id="delete-team">
+                <h2 class="card-title text-danger">Delete team</h2>
+                <p class="small muted">Permanently deletes <strong><?= e($t['name']) ?></strong>, its <?= count($bootcamps) ?> bootcamp<?= count($bootcamps) === 1 ? '' : 's' ?>, <?= (int) $counts['tickets'] ?> ticket<?= $counts['tickets'] === 1 ? '' : 's' ?>, requests, photos and <?= count($accounts) ?> client account<?= count($accounts) === 1 ? '' : 's' ?>. This cannot be undone.</p>
+                <form method="post" action="<?= e(url('/teams/' . $t['id'] . '/delete')) ?>" class="form" data-confirm="Delete <?= e($t['name']) ?> and everything that belongs to it? This cannot be undone.">
+                    <?= csrf_field() ?>
+                    <label class="field"><span>Type the team name to confirm</span><input type="text" name="confirm_name" autocomplete="off" required placeholder="<?= e($t['name']) ?>"></label>
+                    <button class="btn btn-sm btn-danger" type="submit">Delete team permanently</button>
+                </form>
+            </section>
+        <?php endif; ?>
     </aside>
 </div>

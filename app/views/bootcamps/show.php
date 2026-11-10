@@ -388,7 +388,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         </section>
 
         <?php if ($manage): ?>
-            <form method="post" action="<?= e(url('/bootcamps/' . $b['id'] . '/delete')) ?>" data-confirm="Delete this bootcamp permanently? Usually it's better to set the status to Cancelled.">
+            <form method="post" action="<?= e(url('/bootcamps/' . $b['id'] . '/delete')) ?>" data-confirm="Delete this bootcamp permanently, including its tickets, requests, checklists and photos? This cannot be undone. (To keep the history, set the status to Cancelled instead.)">
                 <?= csrf_field() ?>
                 <button class="btn btn-ghost btn-sm btn-block text-danger" type="submit">Delete bootcamp</button>
             </form>

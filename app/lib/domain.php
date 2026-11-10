@@ -785,3 +785,94 @@ function avatar_html(array $u, string $size = ''): string
     }
     return '<span class="' . $cls . '">' . e(initials((string) ($u['name'] ?? '?'))) . '</span>';
 }
+
+// ---------------------------------------------------------------------------
+// Permanent deletion (bootcamps, tickets, teams) incl. uploaded files
+// ---------------------------------------------------------------------------
+
+function remove_dir_tree(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+    foreach (scandir($dir) ?: [] as $f) {
+        if ($f === '.' || $f === '..') {
+            continue;
+        }
+        $p = $dir . '/' . $f;
+        is_dir($p) && !is_link($p) ? remove_dir_tree($p) : @unlink($p);
+    }
+    @rmdir($dir);
+}
+
+function purge_notifications_for(string $path): void
+{
+    q('DELETE FROM notifications WHERE url = ? OR url LIKE ?', [$path, $path . '#%']);
+}
+
+/** Delete one ticket with messages, reads and attachments. Call inside a transaction. */
+function purge_ticket(int $id): void
+{
+    q('DELETE FROM ticket_attachments WHERE ticket_id = ?', [$id]);
+    q('DELETE FROM ticket_reads WHERE ticket_id = ?', [$id]);
+    q('DELETE FROM ticket_messages WHERE ticket_id = ?', [$id]);
+    q('DELETE FROM tickets WHERE id = ?', [$id]);
+    purge_notifications_for('/tickets/' . $id);
+    $GLOBALS['__purge_dirs'][] = APP_ROOT . '/storage/uploads/tickets/' . $id;
+}
+
+/** Delete a bootcamp and everything that belongs to it. Call inside a transaction. */
+function purge_bootcamp(int $id): void
+{
+    foreach (array_column(all('SELECT id FROM tickets WHERE bootcamp_id = ?', [$id]), 'id') as $tid) {
+        purge_ticket((int) $tid);
+    }
+    foreach (['bootcamp_items', 'chair_configs', 'bootcamp_drinks', 'extra_requests', 'checklist_items',
+              'bootcamp_reminders', 'feedback', 'bootcamp_photos', 'activity_requests', 'activity_log'] as $t) {
+        q("DELETE FROM $t WHERE bootcamp_id = ?", [$id]);
+    }
+    q('UPDATE quote_requests SET bootcamp_id = NULL WHERE bootcamp_id = ?', [$id]);
+    q('DELETE FROM bootcamps WHERE id = ?', [$id]);
+    purge_notifications_for('/bootcamps/' . $id);
+    purge_notifications_for('/my/bootcamp/' . $id);
+    $GLOBALS['__purge_dirs'][] = APP_ROOT . '/storage/uploads/bootcamp_' . $id;
+}
+
+/** Delete a team with all its bootcamps, tickets, requests and client accounts. Call inside a transaction. */
+function purge_team(int $id): void
+{
+    foreach (array_column(all('SELECT id FROM bootcamps WHERE team_id = ?', [$id]), 'id') as $bid) {
+        purge_bootcamp((int) $bid);
+    }
+    foreach (array_column(all('SELECT id FROM tickets WHERE team_id = ?', [$id]), 'id') as $tid) {
+        purge_ticket((int) $tid);
+    }
+    q('DELETE FROM activity_requests WHERE team_id = ?', [$id]);
+    q('DELETE FROM quote_requests WHERE team_id = ?', [$id]);
+    foreach (all("SELECT id, avatar FROM users WHERE team_id = ? AND role = 'client'", [$id]) as $u) {
+        foreach (['password_tokens', 'remember_tokens', 'push_subscriptions', 'notifications', 'ticket_reads'] as $t) {
+            q("DELETE FROM $t WHERE user_id = ?", [$u['id']]);
+        }
+        if (!empty($u['avatar'])) {
+            $GLOBALS['__purge_files'][] = APP_ROOT . '/storage/uploads/avatars/' . basename($u['avatar']);
+        }
+        q('DELETE FROM users WHERE id = ?', [$u['id']]);
+    }
+    $logo = scalar('SELECT logo FROM teams WHERE id = ?', [$id]);
+    if ($logo) {
+        $GLOBALS['__purge_files'][] = APP_ROOT . '/storage/uploads/teams/' . basename((string) $logo);
+    }
+    q('DELETE FROM teams WHERE id = ?', [$id]);
+}
+
+/** Remove files queued by purge_* — call after the transaction committed. */
+function purge_files_now(): void
+{
+    foreach ($GLOBALS['__purge_dirs'] ?? [] as $d) {
+        remove_dir_tree($d);
+    }
+    foreach ($GLOBALS['__purge_files'] ?? [] as $f) {
+        @unlink($f);
+    }
+    $GLOBALS['__purge_dirs'] = $GLOBALS['__purge_files'] = [];
+}

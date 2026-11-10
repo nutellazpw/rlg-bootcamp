@@ -44,6 +44,7 @@ return [
     ['GET', '/teams/(\d+)', 'teams@show'],
     [$GP, '/teams/(\d+)/edit', 'teams@edit'],
     ['POST', '/teams/(\d+)/accounts', 'teams@add_account'],
+    ['POST', '/teams/(\d+)/delete', 'teams@delete'],
     ['GET', '/team-logo/(\d+)', 'teams@logo'],
 
     ['GET', '/users', 'users@index'],

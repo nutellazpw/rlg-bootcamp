@@ -313,15 +313,9 @@ function bootcamps_delete(int $id): void
     $b = bootcamp_find($id) ?? not_found();
     $db = db();
     $db->beginTransaction();
-    foreach (['bootcamp_items', 'chair_configs', 'bootcamp_drinks', 'extra_requests'] as $t) {
-        q("DELETE FROM $t WHERE bootcamp_id = ?", [$id]);
-    }
-    q('UPDATE tickets SET bootcamp_id = NULL WHERE bootcamp_id = ?', [$id]);
-    q('DELETE FROM bootcamps WHERE id = ?', [$id]);
-    foreach (['checklist_items', 'bootcamp_reminders', 'feedback'] as $t) {
-        q("DELETE FROM $t WHERE bootcamp_id = ?", [$id]);
-    }
+    purge_bootcamp($id);
     $db->commit();
+    purge_files_now();
     log_activity(null, 'Deleted bootcamp #' . $id . ' (' . $b['team_name'] . ', ' . fmt_range($b['start_date'], $b['end_date']) . ')');
     flash('success', 'Bootcamp for ' . $b['team_name'] . ' deleted.');
     redirect('/bootcamps');

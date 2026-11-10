@@ -96,8 +96,30 @@ function teams_show(int $id): void
         'title' => $t['name'],
         't' => $t,
         'accounts' => all("SELECT * FROM users WHERE team_id = ? AND role = 'client' ORDER BY active DESC, name", [$id]),
+        'counts' => [
+            'tickets' => (int) scalar('SELECT COUNT(*) FROM tickets WHERE team_id = ?', [$id]),
+        ],
         'bootcamps' => all('SELECT b.*, h.name AS hotel_name, ? AS team_name FROM bootcamps b JOIN hotels h ON h.id = b.hotel_id WHERE b.team_id = ? ORDER BY b.start_date DESC', [$t['name'], $id]),
     ]);
+}
+
+function teams_delete(int $id): void
+{
+    require_role('admin', 'manager');
+    $t = one('SELECT * FROM teams WHERE id = ?', [$id]) ?? not_found();
+    if (trim((string) input('confirm_name')) !== trim($t['name'])) {
+        flash('error', 'Type the team name exactly to confirm the deletion.');
+        redirect('/teams/' . $id . '#delete-team');
+    }
+    $n = (int) scalar('SELECT COUNT(*) FROM bootcamps WHERE team_id = ?', [$id]);
+    $db = db();
+    $db->beginTransaction();
+    purge_team($id);
+    $db->commit();
+    purge_files_now();
+    log_activity(null, 'Deleted team ' . $t['name'] . ' (with ' . $n . ' bootcamp' . ($n === 1 ? '' : 's') . ')');
+    flash('success', 'Team ' . $t['name'] . ' deleted.');
+    redirect('/teams');
 }
 
 function teams_add_account(int $id): void

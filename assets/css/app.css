@@ -964,3 +964,4 @@ tr.needs-action td:first-child { box-shadow: inset 4px 0 0 var(--orange); }
 .grid-stretch { align-items: stretch; }
 .grid-stretch > .card { margin: 0; }
 #support .list-row { padding: 9px 0; }
+.card-danger { border-color: rgba(255, 77, 79, .4); }
