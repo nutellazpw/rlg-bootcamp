@@ -94,7 +94,7 @@ $showPrices = !empty($b['show_prices']);
     <?php endif; ?>
 </section>
 
-<div class="grid-2">
+<div class="grid-2 grid-stretch">
     <section class="card" id="drinks">
         <details class="fold"<?= $drinksDone ? '' : ' open' ?>>
             <summary>
@@ -158,6 +158,7 @@ $showPrices = !empty($b['show_prices']);
     </section>
 </div>
 
+<div class="grid-2 grid-stretch">
 <section class="card" id="extras">
     <h2 class="card-title"><?= icon('extras') ?>Extra equipment</h2>
     <?php if ($extras): ?>
@@ -209,6 +210,27 @@ $showPrices = !empty($b['show_prices']);
     <?php endif; ?>
 </section>
 
+<section class="card" id="support">
+    <div class="card-head">
+        <h2 class="card-title"><?= icon('support') ?>Support</h2>
+        <a class="btn btn-sm" href="<?= e(url('/tickets/new', ['bootcamp' => $b['id']])) ?>">+ New ticket</a>
+    </div>
+    <?php if (!$tickets): ?>
+        <p class="muted small">Something not working or missing in the room? Open a ticket — our team is notified immediately.</p>
+    <?php else: ?>
+        <div class="list">
+            <?php foreach ($tickets as $t): ?>
+                <a class="list-row" href="<?= e(url('/tickets/' . $t['id'])) ?>">
+                    <span class="cat-dot cat-<?= e($t['category']) ?>"></span>
+                    <div class="list-main"><div class="list-title"><?= e($t['subject']) ?></div><div class="list-sub"><?= e(time_ago($t['updated_at'])) ?></div></div>
+                    <div class="list-side"><?= status_badge($t['status'], TICKET_STATUSES) ?></div>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</section>
+</div>
+
 <section class="card" id="activities">
     <h2 class="card-title"><?= icon('activity') ?>Extra activities</h2>
     <p class="muted small">Want more out of your bootcamp? Send us a request and we will get back to you with the details and the offer.</p>
@@ -255,25 +277,7 @@ $showPrices = !empty($b['show_prices']);
     </div>
 </section>
 
-<section class="card" id="support">
-    <div class="card-head">
-        <h2 class="card-title"><?= icon('support') ?>Support</h2>
-        <a class="btn btn-sm" href="<?= e(url('/tickets/new', ['bootcamp' => $b['id']])) ?>">+ New ticket</a>
-    </div>
-    <?php if (!$tickets): ?>
-        <p class="muted small">Something not working or missing in the room? Open a ticket — our team is notified immediately.</p>
-    <?php else: ?>
-        <div class="list">
-            <?php foreach ($tickets as $t): ?>
-                <a class="list-row" href="<?= e(url('/tickets/' . $t['id'])) ?>">
-                    <span class="cat-dot cat-<?= e($t['category']) ?>"></span>
-                    <div class="list-main"><div class="list-title"><?= e($t['subject']) ?></div><div class="list-sub"><?= e(time_ago($t['updated_at'])) ?></div></div>
-                    <div class="list-side"><?= status_badge($t['status'], TICKET_STATUSES) ?></div>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-</section>
+
 
 <?php if ($others): ?>
     <section class="card">

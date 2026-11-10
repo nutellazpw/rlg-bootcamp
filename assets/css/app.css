@@ -960,3 +960,7 @@ tr.needs-action td:first-child { box-shadow: inset 4px 0 0 var(--orange); }
 .subnav a { display: inline-flex; align-items: center; gap: 6px; }
 .subnav .ico { width: 16px; height: 16px; color: var(--orange); }
 .fold-title .card-title { gap: 10px; }
+
+.grid-stretch { align-items: stretch; }
+.grid-stretch > .card { margin: 0; }
+#support .list-row { padding: 9px 0; }
