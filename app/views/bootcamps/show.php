@@ -73,7 +73,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         ?>
         <section class="card card-staff<?= isset($flags['Setup due']) ? ' needs-action' : '' ?>" id="checklist">
             <div class="card-head" id="checklist-setup">
-                <h2 class="card-title">Room setup checklist <span class="tag tag-lock">Staff only</span></h2>
+                <h2 class="card-title"><?= icon('checklist') ?>Room setup checklist <span class="tag tag-lock">Staff only</span></h2>
                 <a class="link" href="<?= e(url('/bootcamps/' . $b['id'] . '/print', ['phase' => 'setup'])) ?>" target="_blank">Print order →</a>
             </div>
             <?php partial('bootcamps/_checklist', ['phase' => 'setup', 'items' => $setupItems, 'b' => $b]); ?>
@@ -89,7 +89,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         </section>
 
         <section class="card" id="equipment">
-            <h2 class="card-title">Equipment</h2>
+            <h2 class="card-title"><?= icon('setup') ?>Equipment</h2>
             <?php if (!$items): ?>
                 <p class="muted">No equipment booked.</p>
             <?php else: ?>
@@ -106,7 +106,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
 
         <section class="card" id="chairs">
             <div class="card-head">
-                <h2 class="card-title">Chairs · armrests</h2>
+                <h2 class="card-title"><?= icon('chair') ?>Chairs · armrests</h2>
                 <span class="muted"><?= count($chairs) ?> chairs</span>
             </div>
             <?php if (!$chairs): ?>
@@ -132,7 +132,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         </section>
 
         <section class="card" id="drinks">
-            <h2 class="card-title">Drinks in the fridge</h2>
+            <h2 class="card-title"><?= icon('drinks') ?>Drinks in the fridge</h2>
             <?php if (!$selectedDrinks): ?>
                 <p class="muted">The team hasn't chosen drinks yet.</p>
             <?php else: ?>
@@ -156,7 +156,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         ?>
         <section class="card<?= (isset($flags['Extra to approve']) || isset($flags['Delivery unassigned'])) ? ' needs-action' : '' ?>" id="extras">
             <div class="card-head">
-                <h2 class="card-title">Extra equipment</h2>
+                <h2 class="card-title"><?= icon('extras') ?>Extra equipment</h2>
                 <?php if ($approved): ?><span class="muted small"><?= count($approved) ?> in log</span><?php endif; ?>
             </div>
 
@@ -274,7 +274,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         </section>
 
         <section class="card<?= $hasPendingActivity ? ' needs-action' : '' ?>" id="activities">
-            <div class="card-head"><h2 class="card-title">Activity requests</h2><a class="link" href="<?= e(url('/requests', ['tab' => 'activities'])) ?>">All requests →</a></div>
+            <div class="card-head"><h2 class="card-title"><?= icon('activity') ?>Activity requests</h2><a class="link" href="<?= e(url('/requests', ['tab' => 'activities'])) ?>">All requests →</a></div>
             <?php if (!$activityRequests): ?>
                 <p class="muted small">The team hasn't requested any activities.</p>
             <?php else: foreach ($activityRequests as $r): ?>
@@ -291,7 +291,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
 
         <section class="card card-staff" id="checklist-checkout">
             <div class="card-head">
-                <h2 class="card-title">Pickup &amp; check-out <span class="tag tag-lock">Staff only</span></h2>
+                <h2 class="card-title"><?= icon('truck') ?>Pickup &amp; check-out <span class="tag tag-lock">Staff only</span></h2>
                 <a class="link" href="<?= e(url('/bootcamps/' . $b['id'] . '/print', ['phase' => 'checkout'])) ?>" target="_blank">Print order →</a>
             </div>
             <?php partial('bootcamps/_checklist', ['phase' => 'checkout', 'items' => $checkoutItems, 'b' => $b]); ?>
@@ -319,7 +319,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         </section>
 
         <details class="card history" id="history">
-            <summary><h2 class="card-title">History <span class="muted small">(<?= count($activity) ?>)</span></h2></summary>
+            <summary><h2 class="card-title"><?= icon('history') ?>History <span class="muted small">(<?= count($activity) ?>)</span></h2></summary>
             <?php if (!$activity): ?>
                 <p class="muted small">No changes recorded yet.</p>
             <?php else: ?>
@@ -339,7 +339,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
     <aside class="col-side">
         <?php if ($feedback): ?>
             <section class="card card-accent" id="feedback">
-                <h2 class="card-title">Team feedback</h2>
+                <h2 class="card-title"><?= icon('feedback') ?>Team feedback</h2>
                 <div class="stars-big" title="<?= (int) $feedback['rating'] ?>/5"><?= stars((int) $feedback['rating']) ?></div>
                 <?php if ($feedback['comment']): ?><p>“<?= nl2br_e($feedback['comment']) ?>”</p><?php endif; ?>
                 <p class="small muted"><?= e($feedback['user_name'] ?? '') ?> · <?= e(fmt_dt($feedback['created_at'])) ?></p>
@@ -347,7 +347,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         <?php endif; ?>
 
         <section class="card">
-            <div class="card-head"><h2 class="card-title">Team accounts</h2><a class="link" href="<?= e(url('/teams/' . $b['team_id'])) ?>">Team →</a></div>
+            <div class="card-head"><h2 class="card-title"><?= icon('team') ?>Team accounts</h2><a class="link" href="<?= e(url('/teams/' . $b['team_id'])) ?>">Team →</a></div>
             <?php if (!$accounts): ?>
                 <p class="muted small">No client account yet. <a href="<?= e(url('/teams/' . $b['team_id'])) ?>">Invite the team manager →</a></p>
             <?php else: foreach ($accounts as $a): ?>
@@ -363,7 +363,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         </section>
 
         <section class="card">
-            <h2 class="card-title">Info for the team</h2>
+            <h2 class="card-title"><?= icon('info') ?>Info for the team</h2>
             <?= $b['client_info'] ? '<p class="small">' . nl2br_e($b['client_info']) . '</p>' : '<p class="muted small">Nothing yet.</p>' ?>
             <?php if ($b['staff_notes']): ?>
                 <h3 class="small-title">Internal notes</h3>
@@ -372,7 +372,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
         </section>
 
         <section class="card<?= isset($flags['Ticket waiting']) ? ' needs-action' : '' ?>">
-            <div class="card-head"><h2 class="card-title">Tickets</h2><?= isset($flags['Ticket waiting']) ? '<span class="action-tag">Waiting for reply</span>' : '' ?></div>
+            <div class="card-head"><h2 class="card-title"><?= icon('support') ?>Tickets</h2><?= isset($flags['Ticket waiting']) ? '<span class="action-tag">Waiting for reply</span>' : '' ?></div>
             <?php if (!$tickets): ?>
                 <p class="muted small">No tickets.</p>
             <?php else: ?>

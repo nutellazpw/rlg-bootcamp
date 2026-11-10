@@ -47,11 +47,11 @@ $showPrices = !empty($b['show_prices']);
 <?php if ($canRate): ?>
     <section class="card card-accent" id="feedback">
         <?php if ($feedback): ?>
-            <h2 class="card-title">Thanks for your feedback!</h2>
+            <h2 class="card-title"><?= icon('feedback') ?>Thanks for your feedback!</h2>
             <div class="stars-big"><?= stars((int) $feedback['rating']) ?></div>
             <?php if ($feedback['comment']): ?><p class="muted">“<?= nl2br_e($feedback['comment']) ?>”</p><?php endif; ?>
         <?php else: ?>
-            <h2 class="card-title">How was your bootcamp?</h2>
+            <h2 class="card-title"><?= icon('feedback') ?>How was your bootcamp?</h2>
             <p class="muted small">Rate your stay and tell us what we can do better.</p>
             <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/feedback')) ?>" class="form">
                 <?= csrf_field() ?>
@@ -68,18 +68,18 @@ $showPrices = !empty($b['show_prices']);
 <?php endif; ?>
 
 <nav class="subnav">
-    <a href="#room">Room</a><a href="#drinks">Drinks</a><a href="#chairs">Chairs</a><a href="#extras">Extras</a><a href="#activities">Activities</a><a href="#support">Support</a>
+    <a href="#room"><?= icon('setup') ?>Room</a><a href="#drinks"><?= icon('drinks') ?>Drinks</a><a href="#chairs"><?= icon('chair') ?>Chairs</a><a href="#extras"><?= icon('extras') ?>Extras</a><a href="#activities"><?= icon('activity') ?>Activities</a><a href="#support"><?= icon('support') ?>Support</a>
 </nav>
 
 <?php if ($b['client_info']): ?>
     <section class="card card-accent">
-        <h2 class="card-title">Info from Relog</h2>
+        <h2 class="card-title"><?= icon('info') ?>Info from Relog</h2>
         <p><?= nl2br_e($b['client_info']) ?></p>
     </section>
 <?php endif; ?>
 
 <section class="card" id="room">
-    <h2 class="card-title">Your setup</h2>
+    <h2 class="card-title"><?= icon('setup') ?>Your setup</h2>
     <?php if (!$items): ?>
         <p class="muted">Equipment details will appear here.</p>
     <?php else: ?>
@@ -98,7 +98,7 @@ $showPrices = !empty($b['show_prices']);
     <section class="card" id="drinks">
         <details class="fold"<?= $drinksDone ? '' : ' open' ?>>
             <summary>
-                <span class="fold-title"><h2 class="card-title">Drinks in your fridge</h2>
+                <span class="fold-title"><h2 class="card-title"><?= icon('drinks') ?>Drinks in your fridge</h2>
                     <?php if ($drinksDone): ?><span class="fold-done">✓ Done</span><?php else: ?><span class="action-tag">To do</span><?php endif; ?></span>
                 <span class="fold-summary">
                     <?php if ($selectedDrinks): ?><?= e(implode(', ', array_column($selectedDrinks, 'name'))) ?><?php else: ?>Choose up to <?= DRINKS_MAX ?> drinks<?php endif; ?>
@@ -135,12 +135,12 @@ $showPrices = !empty($b['show_prices']);
 
     <section class="card" id="chairs">
         <?php if (!$chairs): ?>
-            <h2 class="card-title">Chairs · armrests</h2>
+            <h2 class="card-title"><?= icon('chair') ?>Chairs · armrests</h2>
             <p class="muted">No chairs in your booking.</p>
         <?php else: ?>
             <details class="fold"<?= $chairsDone ? '' : ' open' ?>>
                 <summary>
-                    <span class="fold-title"><h2 class="card-title">Chairs · armrests</h2>
+                    <span class="fold-title"><h2 class="card-title"><?= icon('chair') ?>Chairs · armrests</h2>
                         <?php if ($chairsDone): ?><span class="fold-done">✓ Done</span><?php else: ?><span class="action-tag">To do</span><?php endif; ?></span>
                     <span class="fold-summary"><?= count($chairs) ?> chairs · <?= e(chair_summary_text($chairs)) ?>
                         <?php if ($b['chairs_note']): ?><em>“<?= e(mb_strimwidth($b['chairs_note'], 0, 80, '…')) ?>”</em><?php endif; ?></span>
@@ -159,7 +159,7 @@ $showPrices = !empty($b['show_prices']);
 </div>
 
 <section class="card" id="extras">
-    <h2 class="card-title">Extra equipment</h2>
+    <h2 class="card-title"><?= icon('extras') ?>Extra equipment</h2>
     <?php if ($extras): ?>
         <div class="list list-compact">
             <?php foreach ($extras as $x): ?>
@@ -210,7 +210,7 @@ $showPrices = !empty($b['show_prices']);
 </section>
 
 <section class="card" id="activities">
-    <h2 class="card-title">Extra activities</h2>
+    <h2 class="card-title"><?= icon('activity') ?>Extra activities</h2>
     <p class="muted small">Want more out of your bootcamp? Send us a request and we will get back to you with the details and the offer.</p>
     <?php if ($activityRequests): ?>
         <div class="list list-compact activity-requests">
@@ -257,7 +257,7 @@ $showPrices = !empty($b['show_prices']);
 
 <section class="card" id="support">
     <div class="card-head">
-        <h2 class="card-title">Support</h2>
+        <h2 class="card-title"><?= icon('support') ?>Support</h2>
         <a class="btn btn-sm" href="<?= e(url('/tickets/new', ['bootcamp' => $b['id']])) ?>">+ New ticket</a>
     </div>
     <?php if (!$tickets): ?>
@@ -277,7 +277,7 @@ $showPrices = !empty($b['show_prices']);
 
 <?php if ($others): ?>
     <section class="card">
-        <h2 class="card-title">Other bootcamps</h2>
+        <h2 class="card-title"><?= icon('calendar') ?>Other bootcamps</h2>
         <div class="list">
             <?php foreach ($others as $o): ?>
                 <a class="list-row" href="<?= e(url('/my/bootcamp/' . $o['id'])) ?>">

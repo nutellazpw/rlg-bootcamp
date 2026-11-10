@@ -951,3 +951,12 @@ tr.needs-action td:first-child { box-shadow: inset 4px 0 0 var(--orange); }
 .request-box[open] > summary { background: var(--orange); color: #fff; }
 .request-box .extra-form { max-width: 620px; margin-top: 12px; padding-top: 0; border-top: 0; }
 #extras .list-compact + .request-box { padding-top: 12px; border-top: 1px dashed var(--line-2); }
+
+/* Section icons */
+.card-title .ico {
+  width: 34px; height: 34px; padding: 7px; flex-shrink: 0; color: var(--orange);
+  background: var(--orange-soft); border: 1.5px solid rgba(255, 103, 0, .35); border-radius: 0 9px 0 9px; margin-right: 2px;
+}
+.subnav a { display: inline-flex; align-items: center; gap: 6px; }
+.subnav .ico { width: 16px; height: 16px; color: var(--orange); }
+.fold-title .card-title { gap: 10px; }
