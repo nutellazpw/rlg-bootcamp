@@ -42,6 +42,24 @@ function device_label(?string $ua): string
 
     <div>
         <section class="card">
+            <h2 class="card-title">Picture</h2>
+            <?php if (is_staff($u)): ?>
+                <div class="logo-field">
+                    <?= avatar_html($u, 'lg') ?>
+                    <form method="post" action="<?= e(url('/users/' . $u['id'] . '/avatar')) ?>" enctype="multipart/form-data" class="logo-field">
+                        <?= csrf_field() ?>
+                        <label class="btn btn-sm btn-ghost file-btn">Upload picture<input type="file" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" onchange="this.form.submit()"></label>
+                        <?php if ($u['avatar']): ?><button class="btn btn-sm btn-ghost" name="remove" value="1">Remove</button><?php endif; ?>
+                    </form>
+                </div>
+            <?php else: ?>
+                <div class="logo-field">
+                    <?= avatar_html($u, 'lg') ?>
+                    <p class="muted small">Your picture is your team logo. Ask your Relog bootcamp manager to change it.</p>
+                </div>
+            <?php endif; ?>
+        </section>
+        <section class="card">
             <h2 class="card-title">Your details</h2>
             <form method="post" action="<?= e(url('/profile')) ?>" class="form">
                 <?= csrf_field() ?>

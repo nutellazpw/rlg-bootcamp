@@ -6,6 +6,7 @@
     ?>
     <div class="msg<?= $mine ? ' mine' : '' ?><?= $fromStaff ? ' staff' : ' client' ?>" data-id="<?= (int) $m['id'] ?>">
         <div class="msg-meta">
+            <?= avatar_html(['id' => $m['user_id'], 'role' => $m['user_role'], 'name' => $m['user_name'] ?? '?', 'avatar' => $m['user_avatar'] ?? null, 'team_id' => $m['user_team_id'] ?? null, 'team_logo' => $m['user_team_logo'] ?? null], 'xs') ?>
             <strong><?= e($m['user_name'] ?? 'Deleted user') ?></strong>
             <?php if ($fromStaff): ?><span class="tag tag-staff"><?= is_staff($me) ? e(ROLES[$m['user_role']] ?? '') : 'Relog' ?></span><?php endif; ?>
             <span class="muted"><?= e(date('d M H:i', strtotime($m['created_at']))) ?></span>

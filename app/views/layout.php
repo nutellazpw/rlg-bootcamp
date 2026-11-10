@@ -96,7 +96,8 @@ if ($staff) {
                 <span class="dot-count" id="notif-count"<?= $unread ? '' : ' hidden' ?>><?= $unread > 99 ? '99+' : (int) $unread ?></span>
             </a>
             <div class="usermenu">
-                <button type="button" class="avatar" aria-label="Account menu"><?= e(initials($me['name'])) ?></button>
+                <?php $myAvatar = avatar_url($me); ?>
+                <button type="button" class="avatar<?= $myAvatar ? ' avatar-has-img' : '' ?>" aria-label="Account menu"><?php if ($myAvatar): ?><img src="<?= e($myAvatar) ?>" alt=""><?php else: ?><?= e(initials($me['name'])) ?><?php endif; ?></button>
                 <div class="usermenu-panel">
                     <div class="usermenu-head">
                         <strong><?= e($me['name']) ?></strong>

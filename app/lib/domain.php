@@ -255,7 +255,8 @@ function ticket_find(int $id): ?array
 function ticket_messages(int $ticketId, int $afterId = 0): array
 {
     $rows = all(
-        'SELECT m.*, u.name AS user_name, u.role AS user_role FROM ticket_messages m LEFT JOIN users u ON u.id = m.user_id
+        'SELECT m.*, u.name AS user_name, u.role AS user_role, u.avatar AS user_avatar, u.team_id AS user_team_id, tm.logo AS user_team_logo
+         FROM ticket_messages m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN teams tm ON tm.id = u.team_id
          WHERE m.ticket_id = ? AND m.id > ? ORDER BY m.id',
         [$ticketId, $afterId]
     );
@@ -755,4 +756,31 @@ function action_tags(array $flags): string
         $out .= '<span class="action-tag">' . e($label) . ($n > 1 ? ' ×' . $n : '') . '</span>';
     }
     return $out;
+}
+
+// ---------------------------------------------------------------------------
+// Avatars: team members wear their team logo, staff wear their own picture
+// ---------------------------------------------------------------------------
+
+/** @param array $u needs id, role, name, avatar, team_id; optional team_logo */
+function avatar_url(array $u): ?string
+{
+    if (($u['role'] ?? '') === 'client') {
+        $logo = array_key_exists('team_logo', $u) ? $u['team_logo'] : (!empty($u['team_id']) ? scalar('SELECT logo FROM teams WHERE id = ?', [$u['team_id']]) : null);
+        return $logo ? team_logo_url(['id' => $u['team_id'], 'logo' => $logo]) : null;
+    }
+    if (!empty($u['avatar'])) {
+        return url('/avatar/' . (int) $u['id']) . '?v=' . substr(md5((string) $u['avatar']), 0, 8);
+    }
+    return null;
+}
+
+function avatar_html(array $u, string $size = ''): string
+{
+    $cls = 'avatar' . ($size ? ' avatar-' . $size : '');
+    $src = avatar_url($u);
+    if ($src) {
+        return '<span class="' . $cls . ' avatar-has-img"><img src="' . e($src) . '" alt="" loading="lazy"></span>';
+    }
+    return '<span class="' . $cls . '">' . e(initials((string) ($u['name'] ?? '?'))) . '</span>';
 }

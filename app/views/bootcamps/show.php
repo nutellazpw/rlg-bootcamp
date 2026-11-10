@@ -352,7 +352,7 @@ $hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['stat
                 <p class="muted small">No client account yet. <a href="<?= e(url('/teams/' . $b['team_id'])) ?>">Invite the team manager →</a></p>
             <?php else: foreach ($accounts as $a): ?>
                 <div class="person">
-                    <span class="avatar avatar-sm"><?= e(initials($a['name'])) ?></span>
+                    <?= avatar_html($a + ['role' => 'client', 'team_id' => $b['team_id']], 'sm') ?>
                     <div>
                         <strong><?= e($a['name']) ?></strong>
                         <div class="small muted"><?= e($a['email']) ?><?= $a['phone'] ? ' · ' . e($a['phone']) : '' ?></div>

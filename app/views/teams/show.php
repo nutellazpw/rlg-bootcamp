@@ -32,7 +32,7 @@
             <p class="hint">Usually one account per team — the team manager, or the main player if they have no manager.</p>
             <?php foreach ($accounts as $a): ?>
                 <div class="person<?= $a['active'] ? '' : ' inactive' ?>">
-                    <span class="avatar avatar-sm"><?= e(initials($a['name'])) ?></span>
+                    <?= avatar_html($a + ['team_logo' => $t['logo']], 'sm') ?>
                     <div class="person-main">
                         <strong><?= e($a['name']) ?></strong>
                         <div class="small muted"><?= e($a['email']) ?><?= $a['phone'] ? ' · ' . e($a['phone']) : '' ?></div>

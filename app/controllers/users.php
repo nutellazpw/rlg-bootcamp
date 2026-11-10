@@ -101,3 +101,33 @@ function users_toggle(int $id): void
     flash('success', $u['name'] . ($active ? ' enabled.' : ' disabled.'));
     back('/');
 }
+
+/** Upload or remove a staff member's avatar (admin for anyone on staff, or yourself). */
+function users_avatar(int $id): void
+{
+    $me = require_staff();
+    $u = one('SELECT * FROM users WHERE id = ?', [$id]) ?? not_found();
+    if ($u['role'] === 'client' || (!is_admin($me) && (int) $me['id'] !== $id)) {
+        forbidden();
+    }
+    if (!empty($_POST['remove'])) {
+        update('users', ['avatar' => null], 'id = ?', [$id]);
+        flash('success', 'Picture removed.');
+    } elseif ($file = store_image_upload('avatar', 'avatars')) {
+        update('users', ['avatar' => $file], 'id = ?', [$id]);
+        flash('success', 'Picture saved.');
+    } elseif (!isset($_SESSION['flash'])) {
+        flash('error', 'Choose an image.');
+    }
+    back('/profile');
+}
+
+function users_avatar_image(int $id): void
+{
+    require_login();
+    $u = one('SELECT avatar FROM users WHERE id = ?', [$id]);
+    if (!$u || !$u['avatar']) {
+        not_found();
+    }
+    serve_stored_image('avatars', $u['avatar']);
+}

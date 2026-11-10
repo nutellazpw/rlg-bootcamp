@@ -51,6 +51,8 @@ return [
     ['POST', '/users/(\d+)', 'users@update'],
     ['POST', '/users/(\d+)/invite', 'users@resend_invite'],
     ['POST', '/users/(\d+)/toggle', 'users@toggle'],
+    ['POST', '/users/(\d+)/avatar', 'users@avatar'],
+    ['GET', '/avatar/(\d+)', 'users@avatar_image'],
 
     ['GET', '/hotels', 'catalog@hotels'],
     ['POST', '/hotels', 'catalog@hotel_save'],

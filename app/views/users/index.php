@@ -1,6 +1,7 @@
 <div class="page-head">
     <div>
         <h1>Staff accounts</h1>
+        <p class="muted">Click a picture to upload that person's avatar (e.g. the Relog logo in their colour).</p>
         <p class="muted">Administrator sees everything. Bootcamp manager creates and edits bootcamps, teams and inventory and approves extra equipment. Support handles tickets, rooms and deliveries.</p>
     </div>
 </div>
@@ -15,7 +16,15 @@
                 <?php foreach ($rows as $u):
                     $devices = (int) scalar('SELECT COUNT(*) FROM push_subscriptions WHERE user_id = ?', [$u['id']]); ?>
                     <tr class="<?= $u['active'] ? '' : 'row-muted' ?>">
-                        <td><strong><?= e($u['name']) ?></strong><div class="small muted"><?= e($u['email']) ?><?= $u['phone'] ? ' · ' . e($u['phone']) : '' ?></div></td>
+                        <td>
+                            <div class="person-cell">
+                                <form method="post" action="<?= e(url('/users/' . $u['id'] . '/avatar')) ?>" enctype="multipart/form-data" class="avatar-upload" title="Change picture">
+                                    <?= csrf_field() ?>
+                                    <label><?= avatar_html($u) ?><input type="file" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" onchange="this.form.submit()"><span class="avatar-edit">✎</span></label>
+                                </form>
+                                <div><strong><?= e($u['name']) ?></strong><div class="small muted"><?= e($u['email']) ?><?= $u['phone'] ? ' · ' . e($u['phone']) : '' ?></div></div>
+                            </div>
+                        </td>
                         <td>
                             <form method="post" action="<?= e(url('/users/' . $u['id'])) ?>" class="inline-form">
                                 <?= csrf_field() ?>

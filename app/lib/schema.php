@@ -319,6 +319,9 @@ function migrations(): array
                 KEY idx_status (status)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
         ],
+        6 => [
+            "ALTER TABLE users ADD COLUMN avatar VARCHAR(190) NULL",
+        ],
     ];
 }
 
