@@ -780,7 +780,8 @@ function avatar_html(array $u, string $size = ''): string
     $cls = 'avatar' . ($size ? ' avatar-' . $size : '');
     $src = avatar_url($u);
     if ($src) {
-        return '<span class="' . $cls . ' avatar-has-img"><img src="' . e($src) . '" alt="" loading="lazy"></span>';
+        $kind = ($u['role'] ?? '') === 'client' ? ' avatar-team' : ' avatar-photo';
+        return '<span class="' . $cls . ' avatar-has-img' . $kind . '"><img src="' . e($src) . '" alt="" loading="lazy"></span>';
     }
     return '<span class="' . $cls . '">' . e(initials((string) ($u['name'] ?? '?'))) . '</span>';
 }

@@ -97,7 +97,7 @@ if ($staff) {
             </a>
             <div class="usermenu">
                 <?php $myAvatar = avatar_url($me); ?>
-                <button type="button" class="avatar<?= $myAvatar ? ' avatar-has-img' : '' ?>" aria-label="Account menu"><?php if ($myAvatar): ?><img src="<?= e($myAvatar) ?>" alt=""><?php else: ?><?= e(initials($me['name'])) ?><?php endif; ?></button>
+                <button type="button" class="avatar<?= $myAvatar ? ' avatar-has-img ' . ($me['role'] === 'client' ? 'avatar-team' : 'avatar-photo') : '' ?>" aria-label="Account menu"><?php if ($myAvatar): ?><img src="<?= e($myAvatar) ?>" alt=""><?php else: ?><?= e(initials($me['name'])) ?><?php endif; ?></button>
                 <div class="usermenu-panel">
                     <div class="usermenu-head">
                         <strong><?= e($me['name']) ?></strong>
