@@ -18,6 +18,11 @@ Svetla i tamna tema (prekidač ☀/☾ u headeru, pamti se po uređaju). Čist P
 - Štampa (*Print* meni na bootcampu): **Room setup order** (šta se nosi i montira u koju sobu, stolice po broju, pića, potpisi), **Pickup order** i **Bootcamp report** na kraju (dodatna oprema sa danima i „unit-days“, tiketi, check-out, slike, ocena ekipe)
 - Istorija izmena po bootcampu (ko je šta i kada promenio — osoblje i ekipa)
 - Automatski podsetnici (9–21h): 3 dana pre početka menadžeru ako nema sobe (ponovo dan pred), ekipi ako nije izabrala pića/stolice (push + email), osoblju 24h i 3h pred rok za spremanje sobe, i upozorenje kad rok prođe a soba nije označena kao spremna (ne šalje se od 00 do 07h)
+- Zahtevi (*Requests*): ekipe šalju **upit za novi bootcamp** (i kad nemaju aktivan bootcamp) i **zahteve za dodatne aktivnosti** (Media Day, Photoshooting, Transport, Medical check-up, Belgrade tour, Sport) — osoblje odgovara ponudom/statusom, upit se jednim klikom pretvara u bootcamp. Aktivnosti (tekst + slika) se uređuju u *Setup → Activities*
+- Dodatna oprema: više stavki u jednom zahtevu + „Other“ (slobodan tekst); cena po danu u Inventory (vidi je samo admin/menadžer), a po bootcampu se štiklira da li ekipa vidi cene; posle odobrenja neko iz osoblja preuzima isporuku („I'll deliver“)
+- Logo ekipe (na ekipi) — na strani ekipe ime ekipe + zamućen logo kao baner
+- Pića max 5, napomene ekipe uz pića i stolice, sekcije koje su gotove se skupljaju
+- Svuda gde osoblje treba nešto da uradi — narandžast okvir i oznaka (odobrenje, isporuka, soba, tiket, zahtev)
 - Ocena: dan posle kraja bootcampa ekipa dobija zahtev za ocenu (1–5 ★ + komentar), menadžeri dobijaju obaveštenje
 
 **Uloge**

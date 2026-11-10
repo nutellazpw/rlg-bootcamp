@@ -70,3 +70,4 @@ table.chairs { width: 70%; }
   .info-room { grid-row: auto; grid-column: span 2; }
   table.chairs { width: 100%; }
 }
+.grand { text-align: right; font-size: 15px; margin-top: 8px; }

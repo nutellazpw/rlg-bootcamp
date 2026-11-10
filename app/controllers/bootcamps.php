@@ -80,6 +80,7 @@ function bootcamps_save(?array $existing, array $me): array
         'start_date' => $start,
         'end_date' => $end,
         'ready_by' => date('Y-m-d H:i:00', $readyTs),
+        'show_prices' => input('show_prices') ? 1 : 0,
         'status' => $status,
         'staff_notes' => (string) input('staff_notes') ?: null,
         'client_info' => (string) input('client_info') ?: null,
@@ -189,10 +190,19 @@ function bootcamps_create(): void
     if (is_post()) {
         [$id, $errors] = bootcamps_save(null, $me);
         if ($id) {
+            if ($qid = input_int('quote_id')) {
+                update('quote_requests', ['status' => 'converted', 'bootcamp_id' => $id, 'handled_by' => $me['id'], 'updated_at' => now()], 'id = ?', [$qid]);
+                log_activity($id, 'Created from bootcamp request #' . $qid);
+            }
             flash('success', 'Bootcamp created.');
             redirect('/bootcamps/' . $id);
         }
         $b = $_POST;
+    } elseif ($qid = input_int('quote')) {
+        $q = one('SELECT * FROM quote_requests WHERE id = ?', [$qid]) ?? not_found();
+        $note = trim('From team request #' . $qid . ': ' . ($q['people'] ? $q['people'] . ' people, ' : '') . ($q['pcs'] !== null ? $q['pcs'] . ' PCs, ' : '') . ($q['hotel_pref'] ? 'hotel: ' . $q['hotel_pref'] . '. ' : '') . ($q['note'] ?? ''));
+        $b = ['team_id' => $q['team_id'], 'start_date' => $q['start_date'], 'end_date' => $q['end_date'], 'staff_notes' => $note, 'quote_id' => $qid,
+              'ready_by' => $q['start_date'] ? $q['start_date'] . ' 12:00' : ''];
     } elseif (input_int('team')) {
         $b = ['team_id' => input_int('team')];
     }
@@ -227,9 +237,9 @@ function bootcamps_show(int $id): void
     $b = bootcamp_find($id) ?? not_found();
     $items = bootcamp_items($id);
     $extras = all(
-        'SELECT x.*, e.name AS equipment_name, u.name AS requested_name, d.name AS decided_name
-         FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id
-         LEFT JOIN users u ON u.id = x.requested_by LEFT JOIN users d ON d.id = x.decided_by
+        'SELECT x.*, COALESCE(e.name, x.custom_name) AS equipment_name, e.price_per_day AS list_price, u.name AS requested_name, d.name AS decided_name, dv.name AS delivery_name
+         FROM extra_requests x LEFT JOIN equipment e ON e.id = x.equipment_id
+         LEFT JOIN users u ON u.id = x.requested_by LEFT JOIN users d ON d.id = x.decided_by LEFT JOIN users dv ON dv.id = x.delivery_by
          WHERE x.bootcamp_id = ? ORDER BY x.requested_at DESC',
         [$id]
     );
@@ -245,6 +255,8 @@ function bootcamps_show(int $id): void
         'photos' => all('SELECT p.*, u.name AS user_name FROM bootcamp_photos p LEFT JOIN users u ON u.id = p.user_id WHERE p.bootcamp_id = ? ORDER BY p.id', [$id]),
         'feedback' => bootcamp_feedback($id),
         'activity' => bootcamp_activity($id),
+        'flags' => bootcamp_action_flags([$id])[$id] ?? [],
+        'activityRequests' => all('SELECT r.*, a.name AS activity_name, rp.name AS replied_name FROM activity_requests r JOIN activities a ON a.id = r.activity_id LEFT JOIN users rp ON rp.id = r.replied_by WHERE r.bootcamp_id = ? ORDER BY r.status <> \'pending\', r.created_at DESC', [$id]),
         'title' => $b['team_name'] . ' bootcamp',
         'b' => $b,
         'items' => $items,
@@ -380,6 +392,7 @@ function bootcamps_add_extra(int $id): void
         'requested_by' => $me['id'], 'requested_at' => now(),
         'decided_by' => $me['id'], 'decided_at' => now(),
         'bill_from' => $from, 'bill_to' => $to,
+        'price_per_day' => $eq['price_per_day'],
     ]);
     log_activity($id, 'Added extra ' . $qty . '× ' . $eq['name'] . ' (' . fmt_date($from, 'd M') . ' → ' . fmt_date($to, 'd M') . ')');
     $warnings = availability_warnings($from, $to, [(int) $eq['id'] => $qty]);
@@ -394,7 +407,7 @@ function bootcamps_add_extra(int $id): void
 function bootcamps_decide_extra(int $id): void
 {
     $me = require_role('admin', 'manager');
-    $x = one('SELECT x.*, e.name AS equipment_name FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id WHERE x.id = ?', [$id]) ?? not_found();
+    $x = one('SELECT x.*, COALESCE(e.name, x.custom_name) AS equipment_name, e.price_per_day AS list_price FROM extra_requests x LEFT JOIN equipment e ON e.id = x.equipment_id WHERE x.id = ?', [$id]) ?? not_found();
     $b = bootcamp_find((int) $x['bootcamp_id']) ?? not_found();
     $decision = (string) input('decision');
     $note = (string) input('staff_note') ?: null;
@@ -409,12 +422,13 @@ function bootcamps_decide_extra(int $id): void
         update('extra_requests', [
             'status' => 'approved', 'qty' => $qty, 'decided_by' => $me['id'], 'decided_at' => now(),
             'bill_from' => $from, 'bill_to' => $to,
+            'price_per_day' => input('price_per_day') !== '' ? input_money('price_per_day') : $x['list_price'],
             'staff_note' => $note,
         ], 'id = ?', [$id]);
         log_activity((int) $b['id'], 'Approved extra ' . $qty . '× ' . $x['equipment_name'] . ' (' . fmt_date($from, 'd M') . ' → ' . fmt_date($to, 'd M') . ')');
         notify(team_user_ids((int) $b['team_id']), 'Request approved: ' . $qty . '× ' . $x['equipment_name'], $note ?? 'We will bring it to your room.', '/my/bootcamp/' . $b['id']);
-        notify_staff('Deliver ' . $qty . '× ' . $x['equipment_name'], $b['team_name'] . ' · ' . $b['hotel_name'] . ($b['room'] ? ' · room ' . $b['room'] : ''), '/bootcamps/' . $b['id'] . '#extras', true, (int) $me['id']);
-        $warnings = availability_warnings($from, $to, [(int) $x['equipment_id'] => $qty], null, $id);
+        notify_staff('To deliver: ' . $qty . '× ' . $x['equipment_name'], $b['team_name'] . ' · ' . $b['hotel_name'] . ($b['room'] ? ' · room ' . $b['room'] : '') . ' — who takes it? Tap “I\'ll deliver”.', '/bootcamps/' . $b['id'] . '#extras', true, (int) $me['id']);
+        $warnings = $x['equipment_id'] ? availability_warnings($from, $to, [(int) $x['equipment_id'] => $qty], null, $id) : [];
         flash($warnings ? 'warning' : 'success', $warnings ? 'Approved, but: ' . implode(' ', $warnings) : 'Request approved.');
     } elseif ($decision === 'reject') {
         update('extra_requests', ['status' => 'rejected', 'decided_by' => $me['id'], 'decided_at' => now(), 'staff_note' => $note], 'id = ?', [$id]);
@@ -435,7 +449,7 @@ function bootcamps_update_extra(int $id): void
     $x = one('SELECT * FROM extra_requests WHERE id = ?', [$id]) ?? not_found();
     $b = bootcamp_find((int) $x['bootcamp_id']) ?? not_found();
     $action = (string) input('action', 'save');
-    $eqName = (string) scalar('SELECT name FROM equipment WHERE id = ?', [$x['equipment_id']]);
+    $eqName = $x['equipment_id'] ? (string) scalar('SELECT name FROM equipment WHERE id = ?', [$x['equipment_id']]) : (string) $x['custom_name'];
     if ($action === 'remove') {
         update('extra_requests', ['status' => 'cancelled', 'decided_at' => now()], 'id = ?', [$id]);
         log_activity((int) $b['id'], 'Deleted extra ' . $x['qty'] . '× ' . $eqName);
@@ -451,7 +465,11 @@ function bootcamps_update_extra(int $id): void
             flash('error', 'End date is before start date.');
         } else {
             $qty = max(1, input_int('qty', (int) $x['qty']));
-            update('extra_requests', ['qty' => $qty, 'bill_from' => $from, 'bill_to' => $to], 'id = ?', [$id]);
+            $upd = ['qty' => $qty, 'bill_from' => $from, 'bill_to' => $to];
+            if (isset($_POST['price_per_day'])) {
+                $upd['price_per_day'] = input_money('price_per_day');
+            }
+            update('extra_requests', $upd, 'id = ?', [$id]);
             log_activity((int) $b['id'], 'Edited extra ' . $eqName . ': ' . $qty . '×, ' . fmt_date($from, 'd M') . ' → ' . fmt_date($to, 'd M'));
             flash('success', 'Saved.');
         }
@@ -459,12 +477,37 @@ function bootcamps_update_extra(int $id): void
     redirect('/bootcamps/' . $b['id'] . '#extras');
 }
 
+/** Staff member takes (or releases) the delivery of an approved extra. */
+function bootcamps_claim_extra(int $id): void
+{
+    $me = require_staff();
+    $x = one("SELECT x.*, COALESCE(e.name, x.custom_name) AS equipment_name FROM extra_requests x LEFT JOIN equipment e ON e.id = x.equipment_id WHERE x.id = ? AND x.status = 'approved'", [$id]) ?? not_found();
+    if ((int) $x['delivery_by'] === (int) $me['id']) {
+        update('extra_requests', ['delivery_by' => null, 'delivery_claimed_at' => null], 'id = ?', [$id]);
+        log_activity((int) $x['bootcamp_id'], 'Released delivery of ' . $x['qty'] . '× ' . $x['equipment_name']);
+        flash('success', 'Released — someone else can take it.');
+    } else {
+        update('extra_requests', ['delivery_by' => $me['id'], 'delivery_claimed_at' => now()], 'id = ?', [$id]);
+        log_activity((int) $x['bootcamp_id'], 'Will deliver ' . $x['qty'] . '× ' . $x['equipment_name']);
+        $b = bootcamp_find((int) $x['bootcamp_id']);
+        notify_staff($me['name'] . ' will deliver ' . $x['qty'] . '× ' . $x['equipment_name'], $b['team_name'] . ($b['room'] ? ' · room ' . $b['room'] : ''), '/bootcamps/' . $b['id'] . '#extras', true, (int) $me['id']);
+        flash('success', 'You are delivering this one.');
+    }
+    redirect('/bootcamps/' . $x['bootcamp_id'] . '#extras');
+}
+
 function bootcamps_deliver_extra(int $id): void
 {
-    require_staff();
+    $me = require_staff();
     $x = one('SELECT * FROM extra_requests WHERE id = ?', [$id]) ?? not_found();
-    update('extra_requests', ['delivered_at' => $x['delivered_at'] ? null : now()], 'id = ?', [$id]);
-    log_activity((int) $x['bootcamp_id'], ($x['delivered_at'] ? 'Unmarked delivery of extra ' : 'Delivered extra ') . $x['qty'] . '× ' . scalar('SELECT name FROM equipment WHERE id = ?', [$x['equipment_id']]));
+    $upd = ['delivered_at' => $x['delivered_at'] ? null : now()];
+    if (!$x['delivered_at'] && !$x['delivery_by']) {
+        $upd['delivery_by'] = $me['id'];
+        $upd['delivery_claimed_at'] = now();
+    }
+    update('extra_requests', $upd, 'id = ?', [$id]);
+    $eqName = $x['equipment_id'] ? scalar('SELECT name FROM equipment WHERE id = ?', [$x['equipment_id']]) : $x['custom_name'];
+    log_activity((int) $x['bootcamp_id'], ($x['delivered_at'] ? 'Unmarked delivery of extra ' : 'Delivered extra ') . $x['qty'] . '× ' . $eqName);
     redirect('/bootcamps/' . $x['bootcamp_id'] . '#extras');
 }
 

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+<defs>
+<radialGradient id="g" cx="78%" cy="20%" r="80%"><stop offset="0" stop-color="#FF6700" stop-opacity=".55"/><stop offset=".55" stop-color="#FF6700" stop-opacity=".08"/><stop offset="1" stop-color="#FF6700" stop-opacity="0"/></radialGradient>
+<pattern id="p" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><rect width="2" height="26" fill="#ffffff" opacity=".035"/></pattern>
+</defs>
+<rect width="640" height="360" fill="#121212"/>
+<rect width="640" height="360" fill="url(#p)"/>
+<rect width="640" height="360" fill="url(#g)"/>
+<path d="M0 360 L0 300 Q 160 250 320 300 T 640 290 L640 360 Z" fill="#FF6700" opacity=".10"/>
+<g fill="none" stroke="#FF6700" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" transform="translate(320 178)"><path d="M-130 70 h260"/><path d="M-110 70 v-70 l20 -14 l20 14 v70"/><path d="M-70 70 v-40 h40 v40"/><path d="M-30 70 v-110 l30 -30 l30 30 v110"/><path d="M0 -70 v-18" stroke-width="8"/><path d="M30 70 v-40 h40 v40"/><path d="M70 70 v-70 l20 -14 l20 14 v70"/><path d="M-12 70 v-30 a12 12 0 0 1 24 0 v30" stroke-width="7"/></g>
+</svg>

@@ -26,6 +26,7 @@ return [
     ['POST', '/extras/(\d+)/decide', 'bootcamps@decide_extra'],
     ['POST', '/extras/(\d+)/delivered', 'bootcamps@deliver_extra'],
     ['POST', '/extras/(\d+)/update', 'bootcamps@update_extra'],
+    ['POST', '/extras/(\d+)/claim', 'bootcamps@claim_extra'],
     ['POST', '/api/availability', 'bootcamps@availability'],
     ['POST', '/checklist/(\d+)/toggle', 'ops@checklist_toggle'],
     ['POST', '/checklist/(\d+)/delete', 'ops@checklist_delete'],
@@ -43,6 +44,7 @@ return [
     ['GET', '/teams/(\d+)', 'teams@show'],
     [$GP, '/teams/(\d+)/edit', 'teams@edit'],
     ['POST', '/teams/(\d+)/accounts', 'teams@add_account'],
+    ['GET', '/team-logo/(\d+)', 'teams@logo'],
 
     ['GET', '/users', 'users@index'],
     ['POST', '/users', 'users@create'],
@@ -78,6 +80,17 @@ return [
     ['POST', '/my/bootcamp/(\d+)/chairs', 'client@chairs'],
     ['POST', '/my/bootcamp/(\d+)/extras', 'client@request_extra'],
     ['POST', '/my/extras/(\d+)/cancel', 'client@cancel_extra'],
+
+    // Requests: activities + new bootcamp quotes
+    ['POST', '/my/bootcamp/(\d+)/activities', 'requests@activity'],
+    [$GP, '/my/new-bootcamp', 'requests@quote_form'],
+    ['GET', '/requests', 'requests@index'],
+    ['POST', '/activity-requests/(\d+)', 'requests@activity_reply'],
+    ['POST', '/quotes/(\d+)', 'requests@quote_update'],
+    ['GET', '/activities', 'requests@activities_catalog'],
+    ['POST', '/activities', 'requests@activity_save'],
+    ['POST', '/activities/(\d+)', 'requests@activity_save'],
+    ['GET', '/activity-image/(\d+)', 'requests@activity_image'],
 
     // Everyone
     [$GP, '/profile', 'account@profile'],

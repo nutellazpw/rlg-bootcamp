@@ -268,6 +268,57 @@ function migrations(): array
                 KEY idx_ticket (ticket_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
         ],
+        5 => [
+            "ALTER TABLE teams ADD COLUMN logo VARCHAR(190) NULL",
+            "ALTER TABLE bootcamps ADD COLUMN show_prices TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN drinks_note TEXT NULL, ADD COLUMN chairs_note TEXT NULL",
+            "ALTER TABLE extra_requests MODIFY equipment_id INT UNSIGNED NULL, ADD COLUMN custom_name VARCHAR(190) NULL AFTER equipment_id, ADD COLUMN delivery_by INT UNSIGNED NULL, ADD COLUMN delivery_claimed_at DATETIME NULL",
+            "CREATE TABLE IF NOT EXISTS activities (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                slug VARCHAR(40) NULL,
+                name VARCHAR(120) NOT NULL,
+                description TEXT NULL,
+                image VARCHAR(190) NULL,
+                active TINYINT(1) NOT NULL DEFAULT 1,
+                sort INT NOT NULL DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            "CREATE TABLE IF NOT EXISTS activity_requests (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                activity_id INT UNSIGNED NOT NULL,
+                team_id INT UNSIGNED NOT NULL,
+                bootcamp_id INT UNSIGNED NULL,
+                requested_by INT UNSIGNED NULL,
+                preferred_date DATE NULL,
+                preferred_time VARCHAR(30) NULL,
+                people INT NULL,
+                note TEXT NULL,
+                status VARCHAR(16) NOT NULL DEFAULT 'pending',
+                staff_reply TEXT NULL,
+                replied_by INT UNSIGNED NULL,
+                replied_at DATETIME NULL,
+                created_at DATETIME NOT NULL,
+                KEY idx_bootcamp (bootcamp_id),
+                KEY idx_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            "CREATE TABLE IF NOT EXISTS quote_requests (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                team_id INT UNSIGNED NOT NULL,
+                requested_by INT UNSIGNED NULL,
+                start_date DATE NULL,
+                end_date DATE NULL,
+                flexible TINYINT(1) NOT NULL DEFAULT 0,
+                people INT NULL,
+                pcs INT NULL,
+                hotel_pref VARCHAR(120) NULL,
+                note TEXT NULL,
+                status VARCHAR(16) NOT NULL DEFAULT 'new',
+                staff_reply TEXT NULL,
+                handled_by INT UNSIGNED NULL,
+                bootcamp_id INT UNSIGNED NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                KEY idx_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        ],
     ];
 }
 
@@ -288,6 +339,9 @@ function migrate(): void
             db()->exec($sql);
         }
         set_setting('schema_version', (string) $version);
+        if ($version === 5) {
+            seed_activities();
+        }
     }
 }
 
@@ -297,8 +351,27 @@ function latest_schema_version(): int
 }
 
 /** Default catalog data on first install. Everything is editable later. */
+function seed_activities(): void
+{
+    if ((int) scalar('SELECT COUNT(*) FROM activities') > 0) {
+        return;
+    }
+    $items = [
+        ['media-day', 'Media Day', 'A full content day for your team: player interviews, social media clips, team intros and behind-the-scenes footage. We provide the crew, lights and a set-up space in the hotel so you can fill your channels for weeks.'],
+        ['photoshoot', 'Photoshooting', 'Professional photo session for the team: official roster photos, jersey shots, portraits for social media and announcement graphics. Studio lighting and editing included in the offer we send you.'],
+        ['transport', 'Transport / Shuttle', 'Airport pick-up and drop-off, transfers between the hotel and venues, or a driver on call during your stay. Tell us the dates, times and number of people and we will arrange the vehicle.'],
+        ['medical', 'Medical check-up', 'We organise a doctor visit or a medical examination for players or staff — general check-ups, physiotherapy or a specialist appointment. Let us know who needs it and what kind of exam.'],
+        ['belgrade-tour', 'Belgrade tour', 'Take a break from practice with a guided tour of Belgrade: the fortress, the old town, the river and the best local food. Half-day or evening tours, adjusted to your practice schedule.'],
+        ['sport', 'Sport activities', 'Stay sharp outside the game: gym, football, padel, basketball or team-building activities near the hotel. We book the venue and equipment for your group.'],
+    ];
+    foreach ($items as $i => [$slug, $name, $desc]) {
+        insert('activities', ['slug' => $slug, 'name' => $name, 'description' => $desc, 'image' => null, 'active' => 1, 'sort' => $i]);
+    }
+}
+
 function seed_defaults(): void
 {
+    seed_activities();
     if ((int) scalar('SELECT COUNT(*) FROM equipment') === 0) {
         $items = [
             ['Gaming PC', 'pc', 'Ryzen 7 7800X3D · RTX 4070 Ti · 32GB DDR5', 0, 0],

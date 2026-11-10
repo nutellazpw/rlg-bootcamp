@@ -1,5 +1,6 @@
 <?php
 $manage = can_manage();
+$fin = can_finance();
 $chairSummary = [];
 foreach ($chairs as $no => $opt) {
     if ($opt !== 'keep') {
@@ -7,6 +8,7 @@ foreach ($chairs as $no => $opt) {
     }
 }
 $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $d['id'], $drinkIds, true)));
+$hasPendingActivity = (bool) array_filter($activityRequests, fn ($r) => $r['status'] === 'pending');
 ?>
 <div class="page-head">
     <div>
@@ -17,6 +19,7 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
             · <?= e(fmt_range($b['start_date'], $b['end_date'])) ?> (<?= days_between($b['start_date'], $b['end_date']) ?> days)
             · <?= status_badge($b['status'], BOOTCAMP_STATUSES) ?>
         </p>
+        <?php if ($flags): ?><div class="action-tags action-tags-head"><span class="small muted">Needs action:</span><?= action_tags($flags) ?></div><?php endif; ?>
         <?php if ($b['ready_by']):
             $mins = (int) floor((strtotime($b['ready_by']) - time()) / 60);
             $pending = !$b['room_ready_at'] && in_array($b['status'], ['planned', 'active'], true);
@@ -68,7 +71,7 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
         $setupDone = count(array_filter($setupItems, fn ($i) => $i['done_at']));
         $setupAll = $setupItems && $setupDone === count($setupItems);
         ?>
-        <section class="card card-staff" id="checklist">
+        <section class="card card-staff<?= isset($flags['Setup due']) ? ' needs-action' : '' ?>" id="checklist">
             <div class="card-head" id="checklist-setup">
                 <h2 class="card-title">Room setup checklist <span class="tag tag-lock">Staff only</span></h2>
                 <a class="link" href="<?= e(url('/bootcamps/' . $b['id'] . '/print', ['phase' => 'setup'])) ?>" target="_blank">Print order →</a>
@@ -116,6 +119,7 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
                         <div><strong><?= e(ARMREST_OPTIONS[$opt]) ?>:</strong> chair <?= e(implode(', ', $nos)) ?></div>
                     <?php endforeach; endif; ?>
                 </div>
+                <?php if ($b['chairs_note']): ?><div class="team-note"><strong>Team note:</strong> <?= nl2br_e($b['chairs_note']) ?></div><?php endif; ?>
                 <details class="details">
                     <summary>Change chair setup</summary>
                     <form method="post" action="<?= e(url('/bootcamps/' . $b['id'] . '/chairs')) ?>">
@@ -134,6 +138,7 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
             <?php else: ?>
                 <div class="pill-list"><?php foreach ($selectedDrinks as $d): ?><span class="pill"><?= e($d['name']) ?></span><?php endforeach; ?></div>
             <?php endif; ?>
+            <?php if ($b['drinks_note']): ?><div class="team-note"><strong>Team note:</strong> <?= nl2br_e($b['drinks_note']) ?></div><?php endif; ?>
             <details class="details">
                 <summary>Change drinks</summary>
                 <form method="post" action="<?= e(url('/bootcamps/' . $b['id'] . '/drinks')) ?>">
@@ -149,7 +154,7 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
         $pending = array_values(array_filter($extras, fn ($x) => $x['status'] === 'pending'));
         $closed = array_values(array_filter($extras, fn ($x) => in_array($x['status'], ['rejected', 'cancelled'], true)));
         ?>
-        <section class="card" id="extras">
+        <section class="card<?= (isset($flags['Extra to approve']) || isset($flags['Delivery unassigned'])) ? ' needs-action' : '' ?>" id="extras">
             <div class="card-head">
                 <h2 class="card-title">Extra equipment</h2>
                 <?php if ($approved): ?><span class="muted small"><?= count($approved) ?> in log</span><?php endif; ?>
@@ -162,15 +167,16 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
             <?php foreach ($pending as $x): ?>
                 <div class="extra extra-pending">
                     <div class="extra-head">
-                        <div><strong><?= (int) $x['qty'] ?>× <?= e($x['equipment_name']) ?></strong> <?= status_badge('pending', EXTRA_STATUSES) ?></div>
+                        <div><strong><?= (int) $x['qty'] ?>× <?= e($x['equipment_name']) ?></strong><?= $x['equipment_id'] ? '' : ' <span class="tag">other</span>' ?> <?= status_badge('pending', EXTRA_STATUSES) ?></div>
                         <span class="muted small"><?= e($x['requested_name'] ?? '') ?> · <?= e(fmt_dt($x['requested_at'])) ?></span>
                     </div>
                     <?php if ($x['note']): ?><p class="extra-note">“<?= e($x['note']) ?>”</p><?php endif; ?>
                     <?php if ($manage): ?>
                         <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/decide')) ?>" class="decide-form">
                             <?= csrf_field() ?>
-                            <div class="form-grid form-grid-3">
+                            <div class="form-grid form-grid-4">
                                 <label class="field"><span>Qty</span><input type="number" name="qty" value="<?= (int) $x['qty'] ?>" min="1"></label>
+                                <label class="field"><span>Price / day (EUR)</span><input type="text" name="price_per_day" value="<?= e($x['list_price'] ?? '') ?>" inputmode="decimal" placeholder="—"></label>
                                 <label class="field"><span>In room from</span><input type="date" name="bill_from" value="<?= e(max(date('Y-m-d'), $b['start_date'])) ?>" min="<?= e($b['start_date']) ?>" max="<?= e($b['end_date']) ?>"></label>
                                 <label class="field"><span>Until</span><input type="date" name="bill_to" value="<?= e($b['end_date']) ?>" min="<?= e($b['start_date']) ?>" max="<?= e($b['end_date']) ?>"></label>
                             </div>
@@ -189,21 +195,29 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
             <?php if ($approved): ?>
                 <div class="table-wrap extras-log">
                     <table class="table table-stack">
-                        <thead><tr><th>Item</th><th class="num">Qty</th><th>In room</th><th class="num">Days</th><th>Delivered</th><th></th></tr></thead>
+                        <thead><tr><th>Item</th><th class="num">Qty</th><th>In room</th><th class="num">Days</th><?php if ($fin): ?><th class="num">Price</th><?php endif; ?><th>Delivery</th><th></th></tr></thead>
                         <tbody>
                         <?php foreach ($approved as $x):
                             $from = $x['bill_from'] ?: $b['start_date'];
                             $to = $x['bill_to'] ?: $b['end_date'];
                             ?>
                             <tr>
-                                <td><strong><?= e($x['equipment_name']) ?></strong><?php if ($x['note']): ?><div class="small muted">“<?= e($x['note']) ?>”</div><?php endif; ?>
+                                <td><strong><?= e($x['equipment_name']) ?></strong><?= $x['equipment_id'] ? '' : ' <span class="tag">other</span>' ?><?php if ($x['note']): ?><div class="small muted">“<?= e($x['note']) ?>”</div><?php endif; ?>
                                     <div class="small muted"><?= $x['requested_name'] ? 'Requested by ' . e($x['requested_name']) : '' ?><?= $x['decided_name'] ? ' · approved by ' . e($x['decided_name']) : '' ?></div></td>
                                 <td class="num stack-muted"><?= (int) $x['qty'] ?>×</td>
                                 <td class="nowrap stack-muted"><?= e(fmt_date($from, 'd M')) ?> → <?= e(fmt_date($to, 'd M')) ?></td>
                                 <td class="num stack-muted"><?= days_between($from, $to) ?> d</td>
-                                <td class="stack-corner"><?= $x['delivered_at'] ? '<span class="badge badge-completed">Delivered</span>' : '<span class="badge badge-pending">Not yet</span>' ?></td>
+                                <?php if ($fin): ?><td class="num stack-muted nowrap"><?php if ($x['price_per_day'] !== null): ?><?= e(money($x['price_per_day'])) ?>/d<div class="small"><strong><?= e(money((string) ((float) $x['price_per_day'] * (int) $x['qty'] * days_between($from, $to)))) ?></strong></div><?php else: ?>—<?php endif; ?></td><?php endif; ?>
+                                <td class="stack-corner">
+                                    <?php if ($x['delivered_at']): ?><span class="badge badge-completed">Delivered</span>
+                                    <?php elseif ($x['delivery_by']): ?><span class="badge badge-ready">🚚 <?= e($x['delivery_name'] ?? '') ?></span>
+                                    <?php else: ?><span class="badge badge-waiting">Unassigned</span><?php endif; ?>
+                                </td>
                                 <td class="nowrap">
                                     <div class="btn-row">
+                                        <?php if (!$x['delivered_at']): ?>
+                                            <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/claim')) ?>"><?= csrf_field() ?><button class="btn btn-xs<?= $x['delivery_by'] ? ' btn-ghost' : '' ?>"><?= (int) $x['delivery_by'] === (int) user()['id'] ? 'Release' : ($x['delivery_by'] ? 'Take over' : 'I\'ll deliver') ?></button></form>
+                                        <?php endif; ?>
                                         <form method="post" action="<?= e(url('/extras/' . $x['id'] . '/delivered')) ?>"><?= csrf_field() ?><button class="btn btn-xs btn-ghost"><?= $x['delivered_at'] ? 'Undo delivered' : 'Mark delivered' ?></button></form>
                                         <?php if ($manage): ?>
                                             <details class="details-inline">
@@ -213,6 +227,7 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
                                                     <label class="field"><span>Qty</span><input type="number" name="qty" value="<?= (int) $x['qty'] ?>" min="1"></label>
                                                     <label class="field"><span>From</span><input type="date" name="bill_from" value="<?= e($from) ?>"></label>
                                                     <label class="field"><span>Until</span><input type="date" name="bill_to" value="<?= e($to) ?>"></label>
+                                                    <label class="field"><span>Price / day (EUR)</span><input type="text" name="price_per_day" value="<?= e($x['price_per_day']) ?>" inputmode="decimal"></label>
                                                     <div class="btn-row">
                                                         <button class="btn btn-xs" name="action" value="save">Save</button>
                                                         <?php if ($to > date('Y-m-d') && date('Y-m-d') >= $from): ?><button class="btn btn-xs btn-ghost" name="action" value="taken_out">Taken out today</button><?php endif; ?>
@@ -256,6 +271,22 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
                     </form>
                 </details>
             <?php endif; ?>
+        </section>
+
+        <section class="card<?= $hasPendingActivity ? ' needs-action' : '' ?>" id="activities">
+            <div class="card-head"><h2 class="card-title">Activity requests</h2><a class="link" href="<?= e(url('/requests', ['tab' => 'activities'])) ?>">All requests →</a></div>
+            <?php if (!$activityRequests): ?>
+                <p class="muted small">The team hasn't requested any activities.</p>
+            <?php else: foreach ($activityRequests as $r): ?>
+                <div class="extra<?= $r['status'] === 'pending' ? ' extra-pending' : '' ?>">
+                    <div class="extra-head">
+                        <div><strong><?= e($r['activity_name']) ?></strong> <?= status_badge($r['status'], ACTIVITY_STATUSES) ?></div>
+                        <span class="muted small"><?= $r['preferred_date'] ? e(fmt_date($r['preferred_date'], 'D d M')) : 'no date' ?><?= $r['preferred_time'] ? ' ' . e($r['preferred_time']) : '' ?><?= $r['people'] ? ' · ' . (int) $r['people'] . ' people' : '' ?></span>
+                    </div>
+                    <?php if ($r['note']): ?><p class="extra-note">“<?= e($r['note']) ?>”</p><?php endif; ?>
+                    <?php partial('requests/_activity_reply', ['r' => $r]); ?>
+                </div>
+            <?php endforeach; endif; ?>
         </section>
 
         <section class="card card-staff" id="checklist-checkout">
@@ -340,8 +371,8 @@ $selectedDrinks = array_values(array_filter($drinks, fn ($d) => in_array((int) $
             <?php endif; ?>
         </section>
 
-        <section class="card">
-            <div class="card-head"><h2 class="card-title">Tickets</h2></div>
+        <section class="card<?= isset($flags['Ticket waiting']) ? ' needs-action' : '' ?>">
+            <div class="card-head"><h2 class="card-title">Tickets</h2><?= isset($flags['Ticket waiting']) ? '<span class="action-tag">Waiting for reply</span>' : '' ?></div>
             <?php if (!$tickets): ?>
                 <p class="muted small">No tickets.</p>
             <?php else: ?>

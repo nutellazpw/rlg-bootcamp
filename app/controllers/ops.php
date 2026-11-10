@@ -141,7 +141,7 @@ function ops_print(int $id): void
         'items' => bootcamp_items($id),
         'chairs' => bootcamp_chairs($id),
         'drinks' => bootcamp_drinks($id),
-        'extras' => all("SELECT x.*, e.name AS equipment_name, e.spec FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id WHERE x.bootcamp_id = ? AND x.status = 'approved' ORDER BY x.bill_from, x.id", [$id]),
+        'extras' => all("SELECT x.*, COALESCE(e.name, x.custom_name) AS equipment_name, e.spec FROM extra_requests x LEFT JOIN equipment e ON e.id = x.equipment_id WHERE x.bootcamp_id = ? AND x.status = 'approved' ORDER BY x.bill_from, x.id", [$id]),
         'checklist' => checklist_items($id, $phase),
         'contacts' => all("SELECT name, email, phone FROM users WHERE team_id = ? AND role = 'client' AND active = 1", [$b['team_id']]),
     ], 'layout_print');
@@ -159,7 +159,7 @@ function ops_report(int $id): void
         'items' => bootcamp_items($id),
         'chairs' => bootcamp_chairs($id),
         'drinks' => bootcamp_drinks($id),
-        'extras' => all("SELECT x.*, e.name AS equipment_name FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id WHERE x.bootcamp_id = ? ORDER BY x.status = 'approved' DESC, x.bill_from, x.id", [$id]),
+        'extras' => all("SELECT x.*, COALESCE(e.name, x.custom_name) AS equipment_name FROM extra_requests x LEFT JOIN equipment e ON e.id = x.equipment_id WHERE x.bootcamp_id = ? ORDER BY x.status = 'approved' DESC, x.bill_from, x.id", [$id]),
         'tickets' => all('SELECT tk.*, (SELECT COUNT(*) FROM ticket_messages m WHERE m.ticket_id = tk.id AND m.is_system = 0) AS msgs FROM tickets tk WHERE tk.bootcamp_id = ? ORDER BY tk.created_at', [$id]),
         'setup' => checklist_progress($id, 'setup'),
         'checkout' => checklist_items($id, 'checkout'),

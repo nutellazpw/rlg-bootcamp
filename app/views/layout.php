@@ -3,12 +3,16 @@ $me = user();
 $staff = is_staff($me);
 $path = '/' . trim(substr(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), strlen(base_path())), '/');
 $active = function (string $prefix) use ($path): string {
+    if ($prefix === '/my' && str_starts_with($path, '/my/new-bootcamp')) {
+        return '';
+    }
     return ($path === $prefix || str_starts_with($path, rtrim($prefix, '/') . '/')) ? ' active' : '';
 };
 $unread = $me ? unread_notifications_count((int) $me['id']) : 0;
 if ($staff) {
     $openTickets = (int) scalar("SELECT COUNT(*) FROM tickets WHERE status IN ('open','in_progress')");
     $pendingExtras = (int) scalar("SELECT COUNT(*) FROM extra_requests WHERE status = 'pending'");
+    $openRequests = (int) scalar("SELECT (SELECT COUNT(*) FROM quote_requests WHERE status = 'new') + (SELECT COUNT(*) FROM activity_requests WHERE status = 'pending')");
 } else {
     $openTickets = $me ? (int) scalar("SELECT COUNT(*) FROM tickets WHERE team_id = ? AND status IN ('open','in_progress')", [(int) $me['team_id']]) : 0;
     $pendingExtras = 0;
@@ -19,17 +23,20 @@ $nav = $staff
         ['/bootcamps', 'Bootcamps', $pendingExtras],
         ['/calendar', 'Calendar', 0],
         ['/tickets', 'Tickets', $openTickets],
+        ['/requests', 'Requests', $openRequests],
         ['/teams', 'Teams', 0],
         ['/inventory', 'Inventory', 0],
     ]
     : [
         ['/my', 'My bootcamp', 0],
         ['/tickets', 'Support', $openTickets],
+        ['/my/new-bootcamp', 'Request a bootcamp', 0],
     ];
 $setup = [];
 if ($staff) {
     $setup[] = ['/hotels', 'Hotels'];
     $setup[] = ['/drinks', 'Drinks'];
+    $setup[] = ['/activities', 'Activities'];
     if (is_admin($me)) {
         $setup[] = ['/users', 'Staff accounts'];
         $setup[] = ['/settings', 'Settings'];

@@ -36,6 +36,12 @@ function teams_save(?array $existing): array
         'contact_phone' => mb_substr((string) input('contact_phone'), 0, 40) ?: null,
         'notes' => (string) input('notes') ?: null,
     ];
+    $logo = store_image_upload('logo', 'teams');
+    if ($logo) {
+        $data['logo'] = $logo;
+    } elseif ($existing && !empty($_POST['remove_logo'])) {
+        $data['logo'] = null;
+    }
     if ($existing) {
         update('teams', $data, 'id = ?', [$existing['id']]);
         return [(int) $existing['id'], []];
@@ -131,4 +137,18 @@ function flash_invite_result(string $email, bool $sent, string $link): void
     } else {
         flash('warning', 'Account created, but the email could not be sent. Send this link to ' . e($email) . ' yourself (valid 7 days):<br><input class="copy-input" readonly value="' . e($link) . '" onclick="this.select()">', true);
     }
+}
+
+/** Team logo: visible to staff and to that team's accounts. */
+function teams_logo(int $id): void
+{
+    $u = require_login();
+    if (!is_staff($u) && (int) $u['team_id'] !== $id) {
+        not_found();
+    }
+    $t = one('SELECT logo FROM teams WHERE id = ?', [$id]);
+    if (!$t || !$t['logo']) {
+        not_found();
+    }
+    serve_stored_image('teams', $t['logo']);
 }

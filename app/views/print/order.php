@@ -43,6 +43,7 @@ $n = 0;
         <?php endforeach; ?>
         </tbody>
     </table>
+    <?php if ($b['chairs_note']): ?><p class="pre"><strong>Team note:</strong> <?= nl2br_e($b['chairs_note']) ?></p><?php endif; ?>
 <?php endif; ?>
 
 <?php if ($setup): ?>
@@ -52,6 +53,7 @@ $n = 0;
     <?php else: ?>
         <div class="drink-list"><?php foreach ($drinks as $d): ?><span><span class="box"></span> <?= e($d['name']) ?></span><?php endforeach; ?></div>
     <?php endif; ?>
+    <?php if ($b['drinks_note']): ?><p class="pre"><strong>Team note:</strong> <?= nl2br_e($b['drinks_note']) ?></p><?php endif; ?>
 <?php endif; ?>
 
 <?php if ($other): ?>

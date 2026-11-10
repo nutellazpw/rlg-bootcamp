@@ -151,7 +151,7 @@ function equipment_peak_usage(string $from, string $to, ?int $excludeBootcampId 
     $params = [$to, $from];
     $sql = "SELECT x.id, COALESCE(x.bill_from, b.start_date) AS start_date, COALESCE(x.bill_to, b.end_date) AS end_date, x.equipment_id, x.qty
             FROM extra_requests x JOIN bootcamps b ON b.id = x.bootcamp_id
-            WHERE x.status = 'approved' AND b.status <> 'cancelled'
+            WHERE x.status = 'approved' AND x.equipment_id IS NOT NULL AND b.status <> 'cancelled'
               AND COALESCE(x.bill_from, b.start_date) <= ? AND COALESCE(x.bill_to, b.end_date) >= ?";
     if ($excludeExtraId) {
         $sql .= ' AND x.id <> ?';
@@ -439,7 +439,7 @@ function checklist_wanted(array $b): array
     $items = bootcamp_items($id);
     $chairs = bootcamp_chairs($id);
     $drinks = array_column(bootcamp_drinks($id), 'name');
-    $extras = all("SELECT x.*, e.name AS equipment_name FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id WHERE x.bootcamp_id = ? AND x.status = 'approved' ORDER BY x.id", [$id]);
+    $extras = all("SELECT x.*, COALESCE(e.name, x.custom_name) AS equipment_name FROM extra_requests x LEFT JOIN equipment e ON e.id = x.equipment_id WHERE x.bootcamp_id = ? AND x.status = 'approved' ORDER BY x.id", [$id]);
 
     $setup = [];
     $checkout = [];
@@ -447,7 +447,7 @@ function checklist_wanted(array $b): array
     foreach ($items as $it) {
         $detail = $it['spec'] ?: null;
         if ($it['category'] === 'chair') {
-            $detail = chair_summary_text($chairs);
+            $detail = chair_summary_text($chairs) . (!empty($b['chairs_note']) ? ' — note: ' . $b['chairs_note'] : '');
         }
         $setup['eq:' . $it['id']] = [(int) $it['qty'] . '× ' . $it['name'], $detail, $sort];
         $checkout['out_eq:' . $it['id']] = ['Collect ' . (int) $it['qty'] . '× ' . $it['name'], null, $sort];
@@ -461,7 +461,7 @@ function checklist_wanted(array $b): array
         $sort++;
     }
     $setup['net'] = ['Internet / network tested on every PC', null, 200];
-    $setup['drinks'] = ['Fridge stocked', $drinks ? implode(', ', $drinks) : 'Team has not chosen drinks yet', 201];
+    $setup['drinks'] = ['Fridge stocked', ($drinks ? implode(', ', $drinks) : 'Team has not chosen drinks yet') . (!empty($b['drinks_note']) ? ' — note: ' . $b['drinks_note'] : ''), 201];
     $setup['clean'] = ['Room clean, cables tidy', null, 202];
     $checkout['damage'] = ['Room and equipment checked for damage', 'Write notes and add photos below if anything is damaged', 300];
     $checkout['fridge'] = ['Fridge emptied', null, 301];
@@ -643,4 +643,116 @@ function bootcamp_feedback(int $bootcampId): ?array
 function stars(int $rating): string
 {
     return str_repeat('★', max(0, min(5, $rating))) . str_repeat('☆', 5 - max(0, min(5, $rating)));
+}
+
+// ---------------------------------------------------------------------------
+// Team logos, activities, quote requests
+// ---------------------------------------------------------------------------
+
+const ACTIVITY_STATUSES = [
+    'pending'   => 'Pending',
+    'answered'  => 'Offer sent',
+    'confirmed' => 'Confirmed',
+    'declined'  => 'Declined',
+    'cancelled' => 'Cancelled',
+];
+
+const QUOTE_STATUSES = [
+    'new'         => 'New',
+    'in_progress' => 'In progress',
+    'converted'   => 'Booked',
+    'declined'    => 'Declined',
+];
+
+const DRINKS_MAX = 5;
+
+function team_logo_url(?array $team): ?string
+{
+    if (!$team || empty($team['logo'])) {
+        return null;
+    }
+    $id = (int) ($team['team_id'] ?? $team['id']);
+    return url('/team-logo/' . $id) . '?v=' . substr(md5((string) $team['logo']), 0, 8);
+}
+
+function activity_image_url(array $a): string
+{
+    if (!empty($a['image'])) {
+        return url('/activity-image/' . (int) $a['id']) . '?v=' . substr(md5((string) $a['image']), 0, 8);
+    }
+    $slug = (string) ($a['slug'] ?? '');
+    if ($slug !== '' && is_file(APP_ROOT . '/assets/img/activities/' . $slug . '.svg')) {
+        return asset('img/activities/' . $slug . '.svg');
+    }
+    return asset('img/activities/media-day.svg');
+}
+
+/** Save an uploaded image (logo / activity picture). Returns stored file name or null. */
+function store_image_upload(string $field, string $dir): ?string
+{
+    $f = $_FILES[$field] ?? null;
+    if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp_name'])) {
+        return null;
+    }
+    if ($f['size'] > 10 * 1024 * 1024) {
+        flash('error', 'Image is too large (max 10 MB).');
+        return null;
+    }
+    $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
+    $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'][$mime] ?? null;
+    if (!$ext) {
+        flash('error', 'Use a JPG, PNG, WEBP or GIF image.');
+        return null;
+    }
+    $path = APP_ROOT . '/storage/uploads/' . $dir;
+    if (!is_dir($path)) {
+        @mkdir($path, 0755, true);
+    }
+    $name = date('Ymd-His') . '-' . bin2hex(random_bytes(5)) . '.' . $ext;
+    return move_uploaded_file($f['tmp_name'], $path . '/' . $name) ? $name : null;
+}
+
+function serve_stored_image(string $dir, string $file): void
+{
+    $path = APP_ROOT . '/storage/uploads/' . $dir . '/' . basename($file);
+    if (!is_file($path)) {
+        not_found();
+    }
+    $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($path);
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($path));
+    header('Cache-Control: private, max-age=604800');
+    readfile($path);
+    exit;
+}
+
+/**
+ * What each bootcamp is waiting for from staff. Returns [bootcamp_id => [label => count]].
+ * Used to highlight rows and sections that need action.
+ */
+function bootcamp_action_flags(array $bootcampIds = []): array
+{
+    $where = $bootcampIds ? ' AND b.id IN (' . implode(',', array_map('intval', $bootcampIds)) . ')' : '';
+    $flags = [];
+    $add = function (array $rows, string $label) use (&$flags) {
+        foreach ($rows as $r) {
+            $flags[(int) $r['id']][$label] = (int) $r['n'];
+        }
+    };
+    $add(all("SELECT b.id, COUNT(*) n FROM extra_requests x JOIN bootcamps b ON b.id = x.bootcamp_id WHERE x.status = 'pending'$where GROUP BY b.id"), 'Extra to approve');
+    $add(all("SELECT b.id, COUNT(*) n FROM extra_requests x JOIN bootcamps b ON b.id = x.bootcamp_id WHERE x.status = 'approved' AND x.delivered_at IS NULL AND x.delivery_by IS NULL$where GROUP BY b.id"), 'Delivery unassigned');
+    $add(all("SELECT b.id, COUNT(*) n FROM tickets tk JOIN bootcamps b ON b.id = tk.bootcamp_id WHERE tk.status IN ('open','in_progress') AND tk.awaiting_staff_since IS NOT NULL$where GROUP BY b.id"), 'Ticket waiting');
+    $add(all("SELECT b.id, COUNT(*) n FROM activity_requests a JOIN bootcamps b ON b.id = a.bootcamp_id WHERE a.status = 'pending'$where GROUP BY b.id"), 'Activity request');
+    $add(all("SELECT b.id, 1 n FROM bootcamps b WHERE b.status IN ('planned','ready') AND (b.room IS NULL OR b.room = '') AND b.start_date <= (CURDATE() + INTERVAL 7 DAY) AND b.end_date >= CURDATE()$where"), 'No room');
+    $add(all("SELECT b.id, 1 n FROM bootcamps b WHERE b.ready_by IS NOT NULL AND b.room_ready_at IS NULL AND b.status IN ('planned','active') AND b.ready_by < (NOW() + INTERVAL 24 HOUR) AND b.end_date >= CURDATE()$where"), 'Setup due');
+    return $flags;
+}
+
+function action_tags(array $flags): string
+{
+    $out = '';
+    foreach ($flags as $label => $n) {
+        $out .= '<span class="action-tag">' . e($label) . ($n > 1 ? ' ×' . $n : '') . '</span>';
+    }
+    return $out;
 }

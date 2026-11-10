@@ -15,6 +15,15 @@
     <div class="stat<?= array_filter($extras, fn ($x) => $x['status'] === 'pending') ? ' stat-hot' : '' ?>"><span class="stat-num"><?= count(array_filter($extras, fn ($x) => $x['status'] === 'pending')) ?></span><span class="stat-label">Extra requests to approve</span></div>
 </div>
 
+<?php if ($requests): $rq = ($requests['quotes'] ?? 0); $ra = ($requests['activities'] ?? 0); ?>
+    <a class="card needs-action requests-banner" href="<?= e(url('/requests' . ($rq ? '' : '?tab=activities'))) ?>">
+        <strong>Requests waiting:</strong>
+        <?php if ($rq): ?><span class="action-tag"><?= $rq ?> bootcamp request<?= $rq > 1 ? 's' : '' ?></span><?php endif; ?>
+        <?php if ($ra): ?><span class="action-tag"><?= $ra ?> activity request<?= $ra > 1 ? 's' : '' ?></span><?php endif; ?>
+        <span class="link">Open →</span>
+    </a>
+<?php endif; ?>
+
 <?php if ($warnings): ?>
     <div class="alert alert-warning">
         <strong>Inventory overbooked in the next 60 days</strong>
@@ -38,7 +47,7 @@
         <?php else: ?>
             <div class="list">
                 <?php foreach ($tickets as $t): ?>
-                    <a class="list-row" href="<?= e(url('/tickets/' . $t['id'])) ?>">
+                    <a class="list-row<?= $t['awaiting_staff_since'] ? ' needs-action' : '' ?>" href="<?= e(url('/tickets/' . $t['id'])) ?>">
                         <div class="list-main">
                             <div class="list-title">#<?= (int) $t['id'] ?> · <?= e($t['subject']) ?></div>
                             <div class="list-sub"><?= e($t['team_name']) ?> · <?= e(TICKET_CATEGORIES[$t['category']] ?? '') ?><?= $t['assignee_name'] ? ' · ' . e($t['assignee_name']) : '' ?></div>
@@ -63,16 +72,18 @@
         <?php else: ?>
             <div class="list">
                 <?php foreach ($extras as $x): ?>
-                    <a class="list-row" href="<?= e(url('/bootcamps/' . $x['bootcamp_id'] . '#extras')) ?>">
+                    <a class="list-row<?= $x['status'] === 'pending' || !$x['delivery_by'] ? ' needs-action' : '' ?>" href="<?= e(url('/bootcamps/' . $x['bootcamp_id'] . '#extras')) ?>">
                         <div class="list-main">
                             <div class="list-title"><?= (int) $x['qty'] ?>× <?= e($x['equipment_name']) ?></div>
                             <div class="list-sub"><?= e($x['team_name']) ?> · <?= e(time_ago($x['requested_at'])) ?></div>
                         </div>
                         <div class="list-side">
                             <?php if ($x['status'] === 'pending'): ?>
-                                <span class="badge badge-pending">Needs approval</span>
+                                <span class="action-tag">Needs approval</span>
+                            <?php elseif (!$x['delivery_by']): ?>
+                                <span class="action-tag">Who delivers?</span>
                             <?php else: ?>
-                                <span class="badge badge-ready">To deliver</span>
+                                <span class="badge badge-ready">🚚 <?= e($x['delivery_name'] ?? '') ?></span>
                             <?php endif; ?>
                         </div>
                     </a>

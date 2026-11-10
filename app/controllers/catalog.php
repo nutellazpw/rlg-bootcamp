@@ -67,6 +67,7 @@ function catalog_equipment_save(?int $id = null): void
         'category' => $cat,
         'spec' => mb_substr((string) input('spec'), 0, 190) ?: null,
         'total_qty' => max(0, input_int('total_qty')),
+        'price_per_day' => input_money('price_per_day'),
         'requestable' => input('requestable') ? 1 : 0,
         'active' => input('active', $id ? '' : '1') ? 1 : 0,
         'sort' => input_int('sort'),

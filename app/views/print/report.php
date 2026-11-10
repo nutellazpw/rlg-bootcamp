@@ -1,5 +1,6 @@
 <?php
 $docType = 'Bootcamp report';
+$fin = can_finance();
 $approved = array_values(array_filter($extras, fn ($x) => $x['status'] === 'approved'));
 $other = array_values(array_filter($extras, fn ($x) => $x['status'] !== 'approved'));
 $days = days_between($b['start_date'], $b['end_date']);
@@ -20,9 +21,9 @@ $days = days_between($b['start_date'], $b['end_date']);
     <p class="note">No extra equipment during this bootcamp.</p>
 <?php else: ?>
     <table class="grid">
-        <thead><tr><th>Item</th><th class="c">Qty</th><th>In room</th><th class="c">Days</th><th class="c">Unit-days</th><th>Delivered</th><th>Requested</th></tr></thead>
+        <thead><tr><th>Item</th><th class="c">Qty</th><th>In room</th><th class="c">Days</th><th class="c">Unit-days</th><?php if ($fin): ?><th class="c">Price/day</th><th class="c">Total</th><?php endif; ?><th>Delivered</th><th>Requested</th></tr></thead>
         <tbody>
-        <?php $totalUnitDays = 0;
+        <?php $totalUnitDays = 0; $grand = 0.0;
         foreach ($approved as $x):
             $from = $x['bill_from'] ?: $b['start_date'];
             $to = $x['bill_to'] ?: $b['end_date'];
@@ -34,12 +35,17 @@ $days = days_between($b['start_date'], $b['end_date']);
                 <td class="nowrap"><?= e(fmt_date($from, 'd M')) ?> → <?= e(fmt_date($to, 'd M')) ?></td>
                 <td class="c"><?= $d ?></td>
                 <td class="c"><strong><?= $d * (int) $x['qty'] ?></strong></td>
+                <?php if ($fin): $line = $x['price_per_day'] !== null ? (float) $x['price_per_day'] * $d * (int) $x['qty'] : null; $grand += (float) $line; ?>
+                    <td class="c nowrap"><?= $x['price_per_day'] !== null ? e(money($x['price_per_day'])) : '—' ?></td>
+                    <td class="c nowrap"><strong><?= $line !== null ? e(money((string) $line)) : '—' ?></strong></td>
+                <?php endif; ?>
                 <td><?= $x['delivered_at'] ? e(fmt_date($x['delivered_at'], 'd M H:i')) : '—' ?></td>
                 <td><small><?= e(fmt_date($x['requested_at'], 'd M')) ?></small></td>
             </tr>
         <?php endforeach; ?>
         </tbody>
     </table>
+    <?php if ($fin && $grand > 0): ?><p class="grand">Extra equipment total: <strong><?= e(money((string) $grand)) ?></strong></p><?php endif; ?>
     <p class="note">Unit-days = quantity × days in the room (e.g. 2 monitors for 3 days = 6).</p>
 <?php endif; ?>
 <?php if ($other): ?>

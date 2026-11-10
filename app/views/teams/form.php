@@ -7,7 +7,7 @@
 </div>
 <?php if ($errors): ?><div class="alert alert-error"><?php foreach ($errors as $er): ?><div><?= e($er) ?></div><?php endforeach; ?></div><?php endif; ?>
 
-<form method="post" action="<?= e($isNew ? url('/teams/new') : url('/teams/' . (int) $t['id'] . '/edit')) ?>" class="form">
+<form method="post" action="<?= e($isNew ? url('/teams/new') : url('/teams/' . (int) $t['id'] . '/edit')) ?>" class="form" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <section class="card">
         <div class="form-grid">
@@ -18,6 +18,17 @@
             <label class="field"><span>Contact person <small>(team manager or main player)</small></span><input type="text" name="contact_name" value="<?= e($v('contact_name')) ?>" maxlength="120"></label>
             <label class="field"><span>Contact email</span><input type="email" name="contact_email" value="<?= e($v('contact_email')) ?>"></label>
             <label class="field"><span>Contact phone</span><input type="tel" name="contact_phone" value="<?= e($v('contact_phone')) ?>" maxlength="40"></label>
+        </div>
+        <div class="field">
+            <span>Team logo <small>(PNG with transparent background works best)</small></span>
+            <div class="logo-field">
+                <?php if (!$isNew && !empty($t['logo']) && ($lu = team_logo_url(['id' => $t['id'], 'logo' => $t['logo']]))): ?>
+                    <img class="team-logo-preview" src="<?= e($lu) ?>" alt="">
+                <?php endif; ?>
+                <label class="btn btn-sm btn-ghost file-btn">Choose image<input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif" onchange="this.closest('.logo-field').querySelector('.file-name').textContent = this.files[0] ? this.files[0].name : ''"></label>
+                <span class="file-name small muted"></span>
+                <?php if (!$isNew && !empty($t['logo'])): ?><label class="check"><input type="checkbox" name="remove_logo" value="1"><span>Remove logo</span></label><?php endif; ?>
+            </div>
         </div>
         <label class="field"><span>Notes <small>(staff only)</small></span><textarea name="notes" rows="3"><?= e($v('notes')) ?></textarea></label>
         <?php if ($isNew): ?>

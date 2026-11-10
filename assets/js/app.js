@@ -121,6 +121,56 @@
     form.addEventListener('rlg:sent', () => { picked = []; sync(); });
   });
 
+  // Drinks: max N selected
+  $$('form[data-max-drinks]').forEach((f) => {
+    const max = parseInt(f.dataset.maxDrinks, 10);
+    const boxes = $$('input[name="drinks[]"]', f);
+    const counter = $('[data-drink-count]', f);
+    const sync = () => {
+      const n = boxes.filter((b) => b.checked).length;
+      if (counter) counter.textContent = n;
+      boxes.forEach((b) => {
+        b.disabled = !b.checked && n >= max;
+        b.closest('.drink').classList.toggle('is-disabled', b.disabled);
+      });
+    };
+    boxes.forEach((b) => b.addEventListener('change', sync));
+    sync();
+  });
+
+  // Extra equipment: add / remove rows, "Other" free text
+  $$('[data-extra-form]').forEach((f) => {
+    const wrap = $('[data-extra-rows]', f);
+    const template = $('[data-extra-row]', wrap).cloneNode(true);
+    const wire = (row) => {
+      const sel = $('[data-extra-select]', row);
+      const other = $('[data-extra-other]', row);
+      const toggle = () => {
+        const isOther = sel.value === 'other';
+        other.hidden = !isOther;
+        $('input', other).required = isOther;
+      };
+      sel.addEventListener('change', toggle);
+      toggle();
+      $('[data-extra-remove]', row).addEventListener('click', () => { row.remove(); refresh(); });
+    };
+    const refresh = () => {
+      const rows = $$('[data-extra-row]', wrap);
+      rows.forEach((r) => { $('[data-extra-remove]', r).hidden = rows.length < 2; });
+    };
+    $$('[data-extra-row]', wrap).forEach(wire);
+    $('[data-extra-add]', f).addEventListener('click', () => {
+      if ($$('[data-extra-row]', wrap).length >= 10) return;
+      const row = template.cloneNode(true);
+      $$('input', row).forEach((i) => { i.value = i.type === 'number' ? '1' : ''; });
+      wrap.appendChild(row);
+      wire(row);
+      refresh();
+      $('select', row).focus();
+    });
+    refresh();
+  });
+
   // Clickable table rows
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => {
     if (e.target.closest('a,button,input,select,label,form')) return;

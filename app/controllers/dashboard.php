@@ -16,8 +16,8 @@ function dashboard_index(): void
          ORDER BY (tk.awaiting_staff_since IS NULL), tk.awaiting_staff_since, tk.updated_at DESC LIMIT 10"
     );
     $extras = all(
-        "SELECT x.*, e.name AS equipment_name, t.name AS team_name, b.id AS bootcamp_id
-         FROM extra_requests x JOIN equipment e ON e.id = x.equipment_id JOIN bootcamps b ON b.id = x.bootcamp_id JOIN teams t ON t.id = b.team_id
+        "SELECT x.*, COALESCE(e.name, x.custom_name) AS equipment_name, t.name AS team_name, b.id AS bootcamp_id, dv.name AS delivery_name
+         FROM extra_requests x LEFT JOIN equipment e ON e.id = x.equipment_id JOIN bootcamps b ON b.id = x.bootcamp_id JOIN teams t ON t.id = b.team_id LEFT JOIN users dv ON dv.id = x.delivery_by
          WHERE x.status = 'pending' OR (x.status = 'approved' AND x.delivered_at IS NULL)
          ORDER BY x.status = 'pending' DESC, x.requested_at"
     );
@@ -30,6 +30,10 @@ function dashboard_index(): void
         'extras' => $extras,
         'missingRoom' => $missingRoom,
         'warnings' => upcoming_inventory_warnings(),
+        'requests' => array_filter([
+            'quotes' => (int) scalar("SELECT COUNT(*) FROM quote_requests WHERE status = 'new'"),
+            'activities' => (int) scalar("SELECT COUNT(*) FROM activity_requests WHERE status = 'pending'"),
+        ]),
     ]);
 }
 

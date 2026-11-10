@@ -34,7 +34,7 @@
     <?php else: ?>
         <div class="list list-tickets">
             <?php foreach ($rows as $t): $unread = (int) $t['last_msg'] > (int) $t['read_upto']; ?>
-                <a class="list-row<?= $unread ? ' unread' : '' ?>" href="<?= e(url('/tickets/' . $t['id'])) ?>">
+                <a class="list-row<?= $unread ? ' unread' : '' ?><?= $staff && $t['awaiting_staff_since'] && $t['status'] !== 'resolved' ? ' needs-action' : '' ?>" href="<?= e(url('/tickets/' . $t['id'])) ?>">
                     <span class="cat-dot cat-<?= e($t['category']) ?>" title="<?= e(TICKET_CATEGORIES[$t['category']] ?? '') ?>"></span>
                     <div class="list-main">
                         <div class="list-title">#<?= (int) $t['id'] ?> · <?= e($t['subject']) ?></div>

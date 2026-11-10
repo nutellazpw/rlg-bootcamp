@@ -23,6 +23,7 @@ $action = $isNew ? url('/bootcamps/new') : url('/bootcamps/' . (int) $b['id'] . 
 
 <form method="post" action="<?= e($action) ?>" class="form" id="bootcamp-form" data-bootcamp-id="<?= $isNew ? '' : (int) $b['id'] ?>">
     <?= csrf_field() ?>
+    <?php if (!empty($b['quote_id'])): ?><input type="hidden" name="quote_id" value="<?= (int) $b['quote_id'] ?>"><div class="alert alert-info">Creating from team request #<?= (int) $b['quote_id'] ?> — check the equipment and set the room-ready deadline.</div><?php endif; ?>
 
     <section class="card">
         <h2 class="card-title">Team &amp; place</h2>
@@ -98,6 +99,12 @@ $action = $isNew ? url('/bootcamps/new') : url('/bootcamps/' . (int) $b['id'] . 
         <p class="hint">Chair count decides how many chairs the team can configure (armrests). Monitors are separate items per refresh rate — add new types in Inventory.</p>
     </section>
 
+
+    <section class="card">
+        <h2 class="card-title">Extra equipment prices</h2>
+        <label class="check"><input type="checkbox" name="show_prices" value="1"<?= checked(!empty($b['show_prices'])) ?>><span>Show prices per day to this team when they request extra equipment</span></label>
+        <p class="hint">Prices per day are set in Inventory. Teams never see prices unless this is checked.</p>
+    </section>
 
     <section class="card">
         <h2 class="card-title">Notes</h2>
