@@ -40,6 +40,7 @@ ini_set('error_log', APP_ROOT . '/storage/logs/php-error.log');
 
 require APP_DIR . '/lib/db.php';
 require APP_DIR . '/lib/helpers.php';
+require APP_DIR . '/lib/i18n.php';
 require APP_DIR . '/lib/schema.php';
 require APP_DIR . '/lib/auth.php';
 require APP_DIR . '/lib/mailer.php';

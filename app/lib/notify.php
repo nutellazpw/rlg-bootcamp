@@ -25,28 +25,48 @@ function team_user_ids(int $teamId): array
     ));
 }
 
+/** Message parts may be a plain string or a Closure that builds the text (with __()) in the current language. */
+function msg_text($m): string
+{
+    return $m instanceof Closure ? (string) $m() : (string) $m;
+}
+
 /**
- * @param int[]  $userIds
- * @param string|null $telegram  Text for the staff Telegram group (null = don't send)
+ * Store an in-app notification for each user (rendered in that user's language) and queue push.
+ *
+ * @param int[]                $userIds
+ * @param string|Closure       $title
+ * @param string|Closure       $body
+ * @param string|Closure|null  $telegram  Text for the staff Telegram group, always rendered in Serbian (null = don't send)
  */
-function notify(array $userIds, string $title, string $body = '', string $url = '/', ?string $telegram = null, ?int $exceptUserId = null): void
+function notify(array $userIds, $title, $body = '', string $url = '/', $telegram = null, ?int $exceptUserId = null): void
 {
     $userIds = array_values(array_unique(array_map('intval', $userIds)));
     if ($exceptUserId) {
         $userIds = array_values(array_filter($userIds, fn ($id) => $id !== $exceptUserId));
     }
+    $langs = [];
+    if ($userIds) {
+        foreach (all('SELECT id, role, lang FROM users WHERE id IN (' . implode(',', $userIds) . ')') as $r) {
+            $langs[(int) $r['id']] = user_locale($r);
+        }
+    }
+    $rendered = [];
     foreach ($userIds as $uid) {
+        $lang = $langs[$uid] ?? 'en';
+        $rendered[$lang] ??= with_locale($lang, fn () => [msg_text($title), msg_text($body)]);
+        [$t, $b] = $rendered[$lang];
         insert('notifications', [
             'user_id' => $uid,
-            'title' => mb_substr($title, 0, 190),
-            'body' => mb_substr($body, 0, 500),
+            'title' => mb_substr($t, 0, 190),
+            'body' => mb_substr($b, 0, 500),
             'url' => mb_substr($url, 0, 255),
             'created_at' => now(),
         ]);
         $GLOBALS['__push_queue'][$uid] = true;
     }
     if ($telegram !== null) {
-        $GLOBALS['__telegram_queue'][] = $telegram . "\n" . abs_url($url);
+        $GLOBALS['__telegram_queue'][] = with_locale('sr', fn () => msg_text($telegram)) . "\n" . abs_url($url);
     }
     static $registered = false;
     if (!$registered) {
@@ -55,9 +75,14 @@ function notify(array $userIds, string $title, string $body = '', string $url = 
     }
 }
 
-function notify_staff(string $title, string $body, string $url, bool $telegram = true, ?int $exceptUserId = null): void
+/** Notify all staff (+ Telegram). Title/body may be Closures so each person gets their language. */
+function notify_staff($title, $body, string $url, bool $telegram = true, ?int $exceptUserId = null): void
 {
-    notify(staff_ids(), $title, $body, $url, $telegram ? ('🔔 ' . $title . ($body ? "\n" . $body : '')) : null, $exceptUserId);
+    $tg = $telegram ? function () use ($title, $body) {
+        $b = msg_text($body);
+        return '🔔 ' . msg_text($title) . ($b !== '' ? "\n" . $b : '');
+    } : null;
+    notify(staff_ids(), $title, $body, $url, $tg, $exceptUserId);
 }
 
 function flush_notification_queue(): void

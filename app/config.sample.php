@@ -45,6 +45,10 @@ return [
     // when cPanel cron with PHP CLI is not an option. Leave empty to disable HTTP cron.
     'cron_key' => '',
 
+    // Default language for staff screens and staff notifications ('sr' or 'en').
+    // Each staff member can change it in their profile. Teams always see English.
+    'staff_language' => 'sr',
+
     // Ticket reminders: first reminder after N minutes without a staff reply,
     // then every N minutes. No reminders between quiet_from and quiet_to (24h clock).
     'reminders' => [

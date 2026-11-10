@@ -9,12 +9,12 @@ function ops_checklist_toggle(int $id): void
     $item = one('SELECT * FROM checklist_items WHERE id = ?', [$id]) ?? not_found();
     $done = !$item['done_at'];
     update('checklist_items', ['done_at' => $done ? now() : null, 'done_by' => $done ? $u['id'] : null], 'id = ?', [$id]);
-    log_activity((int) $item['bootcamp_id'], ($done ? '✓ ' : '✗ unchecked ') . (CHECKLIST_PHASES[$item['phase']] ?? '') . ': ' . $item['label']);
+    log_activity((int) $item['bootcamp_id'], fn () => ($done ? '✓ ' : '✗ ' . __('unchecked') . ' ') . lbl(CHECKLIST_PHASES, $item['phase']) . ': ' . $item['label']);
     [$doneCount, $total] = checklist_progress((int) $item['bootcamp_id'], $item['phase']);
     if (wants_json()) {
         json_out([
             'done' => $done,
-            'by' => $done ? $u['name'] . ' · ' . date('d M H:i') : '',
+            'by' => $done ? $u['name'] . ' · ' . ldate('d M H:i', time()) : '',
             'progress' => [$doneCount, $total],
         ]);
     }
@@ -29,7 +29,7 @@ function ops_checklist_add(int $bootcampId): void
     $label = mb_substr(trim((string) input('label')), 0, 190);
     if ($label !== '') {
         insert('checklist_items', ['bootcamp_id' => $bootcampId, 'phase' => $phase, 'item_key' => null, 'label' => $label, 'sort' => 250]);
-        log_activity($bootcampId, 'Added checklist item: ' . $label);
+        log_activity($bootcampId, fn () => __('Added checklist item: %s', $label));
     }
     redirect('/bootcamps/' . $bootcampId . '#checklist-' . $phase);
 }
@@ -39,7 +39,7 @@ function ops_checklist_delete(int $id): void
     require_staff();
     $item = one('SELECT * FROM checklist_items WHERE id = ? AND item_key IS NULL', [$id]) ?? not_found();
     q('DELETE FROM checklist_items WHERE id = ?', [$id]);
-    log_activity((int) $item['bootcamp_id'], 'Removed checklist item: ' . $item['label']);
+    log_activity((int) $item['bootcamp_id'], fn () => __('Removed checklist item: %s', $item['label']));
     redirect('/bootcamps/' . $item['bootcamp_id'] . '#checklist-' . $item['phase']);
 }
 
@@ -50,9 +50,9 @@ function ops_checkout_notes(int $bootcampId): void
     $notes = trim((string) input('checkout_notes'));
     if ($notes !== (string) $b['checkout_notes']) {
         update('bootcamps', ['checkout_notes' => $notes ?: null], 'id = ?', [$bootcampId]);
-        log_activity($bootcampId, 'Updated check-out / damage notes');
+        log_activity($bootcampId, fn () => __('Updated check-out / damage notes'));
     }
-    flash('success', 'Notes saved.');
+    flash('success', __('Notes saved.'));
     redirect('/bootcamps/' . $bootcampId . '#checklist-checkout');
 }
 
@@ -93,10 +93,10 @@ function ops_photo_upload(int $bootcampId): void
         }
     }
     if ($ok) {
-        log_activity($bootcampId, 'Added ' . $ok . ' photo' . ($ok > 1 ? 's' : ''));
-        flash('success', $ok . ' photo' . ($ok > 1 ? 's' : '') . ' uploaded.');
+        log_activity($bootcampId, fn () => __('Added %s', __n($ok, '%d photo', '%d photos')));
+        flash('success', __('Uploaded: %s.', __n($ok, '%d photo', '%d photos')));
     } else {
-        flash('error', 'No photo uploaded. Use JPG, PNG, WEBP or HEIC up to 15 MB.');
+        flash('error', __('No photo uploaded. Use JPG, PNG, WEBP or HEIC up to 15 MB.'));
     }
     redirect('/bootcamps/' . $bootcampId . '#checklist-checkout');
 }
@@ -123,7 +123,7 @@ function ops_photo_delete(int $id): void
     $p = one('SELECT * FROM bootcamp_photos WHERE id = ?', [$id]) ?? not_found();
     @unlink(photos_dir((int) $p['bootcamp_id']) . '/' . basename($p['file']));
     q('DELETE FROM bootcamp_photos WHERE id = ?', [$id]);
-    log_activity((int) $p['bootcamp_id'], 'Deleted a photo');
+    log_activity((int) $p['bootcamp_id'], fn () => __('Deleted a photo'));
     redirect('/bootcamps/' . $p['bootcamp_id'] . '#checklist-checkout');
 }
 
@@ -134,8 +134,9 @@ function ops_print(int $id): void
     $b = bootcamp_find($id) ?? not_found();
     checklist_sync($b);
     $phase = input('phase') === 'checkout' ? 'checkout' : 'setup';
+    $GLOBALS['__locale_stack'][] = 'sr'; // printed documents are always in Serbian
     view('print/order', [
-        'title' => ($phase === 'setup' ? 'Room setup order' : 'Pickup order') . ' · ' . $b['team_name'],
+        'title' => ($phase === 'setup' ? __('Room setup order') : __('Pickup order')) . ' · ' . $b['team_name'],
         'b' => $b,
         'phase' => $phase,
         'items' => bootcamp_items($id),
@@ -153,8 +154,9 @@ function ops_report(int $id): void
     require_staff();
     $b = bootcamp_find($id) ?? not_found();
     checklist_sync($b);
+    $GLOBALS['__locale_stack'][] = 'sr'; // printed documents are always in Serbian
     view('print/report', [
-        'title' => 'Bootcamp report · ' . $b['team_name'],
+        'title' => __('Bootcamp report') . ' · ' . $b['team_name'],
         'b' => $b,
         'items' => bootcamp_items($id),
         'chairs' => bootcamp_chairs($id),
@@ -191,13 +193,13 @@ function ops_feedback(int $bootcampId): void
     }
     $comment = mb_substr(trim((string) input('comment')), 0, 3000);
     insert('feedback', ['bootcamp_id' => $bootcampId, 'user_id' => $u['id'], 'rating' => $rating, 'comment' => $comment ?: null, 'created_at' => now()]);
-    log_activity($bootcampId, 'Team left feedback: ' . stars($rating));
+    log_activity($bootcampId, fn () => __('Team left feedback: %s', stars($rating)));
     notify(
         manager_ids(),
-        'Feedback from ' . $b['team_name'] . ': ' . stars($rating),
-        $comment !== '' ? mb_strimwidth($comment, 0, 160, '…') : 'No comment',
+        fn () => __('Feedback from %s: %s', $b['team_name'], stars($rating)),
+        fn () => $comment !== '' ? mb_strimwidth($comment, 0, 160, '…') : __('No comment'),
         '/bootcamps/' . $bootcampId . '#feedback',
-        '⭐ Feedback from ' . $b['team_name'] . ': ' . stars($rating) . ($comment !== '' ? "\n" . mb_strimwidth($comment, 0, 500, '…') : '')
+        fn () => '⭐ ' . __('Feedback from %s: %s', $b['team_name'], stars($rating)) . ($comment !== '' ? "\n" . mb_strimwidth($comment, 0, 500, '…') : '')
     );
     flash('success', 'Thank you for your feedback!');
     redirect('/my/bootcamp/' . $bootcampId . '#feedback');

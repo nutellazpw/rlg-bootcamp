@@ -9,32 +9,37 @@ function account_profile(): void
         if ($action === 'profile') {
             $name = mb_substr(trim((string) input('name')), 0, 120);
             if ($name === '') {
-                flash('error', 'Name cannot be empty.');
+                flash('error', __('Name cannot be empty.'));
             } else {
-                update('users', ['name' => $name, 'phone' => mb_substr((string) input('phone'), 0, 40) ?: null], 'id = ?', [$u['id']]);
-                flash('success', 'Profile saved.');
+                $upd = ['name' => $name, 'phone' => mb_substr((string) input('phone'), 0, 40) ?: null];
+                if (is_staff($u) && isset(LANGUAGES[(string) input('lang')])) {
+                    $upd['lang'] = (string) input('lang');
+                }
+                update('users', $upd, 'id = ?', [$u['id']]);
+                $GLOBALS['__locale_stack'][] = $upd['lang'] ?? locale();
+                flash('success', __('Profile saved.'));
             }
         } elseif ($action === 'password') {
             $current = (string) ($_POST['current'] ?? '');
             $p1 = (string) ($_POST['password'] ?? '');
             $p2 = (string) ($_POST['password2'] ?? '');
             if (!$u['password_hash'] || !password_verify($current, $u['password_hash'])) {
-                flash('error', 'Current password is wrong.');
+                flash('error', __('Current password is wrong.'));
             } elseif (mb_strlen($p1) < 8) {
-                flash('error', 'New password must be at least 8 characters.');
+                flash('error', __('New password must be at least 8 characters.'));
             } elseif ($p1 !== $p2) {
-                flash('error', 'Passwords do not match.');
+                flash('error', __('Passwords do not match.'));
             } else {
                 update('users', ['password_hash' => password_hash($p1, PASSWORD_DEFAULT)], 'id = ?', [$u['id']]);
                 q('DELETE FROM remember_tokens WHERE user_id = ?', [$u['id']]);
                 issue_remember_token((int) $u['id']);
-                flash('success', 'Password changed. Other devices were signed out.');
+                flash('success', __('Password changed. Other devices were signed out.'));
             }
         }
         redirect('/profile');
     }
     view('account/profile', [
-        'title' => 'Profile',
+        'title' => __('Profile'),
         'u' => $u,
         'devices' => all('SELECT id, user_agent, created_at, last_ok_at FROM push_subscriptions WHERE user_id = ? ORDER BY created_at DESC', [$u['id']]),
     ]);
@@ -44,7 +49,7 @@ function account_notifications(): void
 {
     $u = require_login();
     view('account/notifications', [
-        'title' => 'Notifications',
+        'title' => __('Notifications'),
         'rows' => all('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 100', [$u['id']]),
     ]);
 }

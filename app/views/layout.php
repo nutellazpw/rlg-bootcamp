@@ -43,7 +43,7 @@ if ($staff) {
     }
 }
 ?><!doctype html>
-<html lang="en">
+<html lang="<?= e(locale()) ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -69,45 +69,45 @@ if ($staff) {
         </a>
         <nav class="mainnav" id="mainnav">
             <?php foreach ($nav as [$href, $label, $count]): ?>
-                <a class="nav-link<?= $active($href) ?>" href="<?= e(url($href)) ?>"><?= e($label) ?><?php if ($count): ?><span class="nav-count"><?= (int) $count ?></span><?php endif; ?></a>
+                <a class="nav-link<?= $active($href) ?>" href="<?= e(url($href)) ?>"><?= e(__($label)) ?><?php if ($count): ?><span class="nav-count"><?= (int) $count ?></span><?php endif; ?></a>
             <?php endforeach; ?>
             <?php if ($setup): ?>
                 <div class="nav-group">
-                    <button type="button" class="nav-link nav-group-toggle<?php foreach ($setup as [$h]) { echo $active($h) ? ' active' : ''; } ?>">Setup <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+                    <button type="button" class="nav-link nav-group-toggle<?php foreach ($setup as [$h]) { echo $active($h) ? ' active' : ''; } ?>"><?= e(__('Setup')) ?> <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
                     <div class="nav-sub">
                         <?php foreach ($setup as [$href, $label]): ?>
-                            <a class="<?= trim($active($href)) ?>" href="<?= e(url($href)) ?>"><?= e($label) ?></a>
+                            <a class="<?= trim($active($href)) ?>" href="<?= e(url($href)) ?>"><?= e(__($label)) ?></a>
                         <?php endforeach; ?>
                     </div>
                 </div>
             <?php endif; ?>
             <div class="nav-mobile-extra">
-                <a class="nav-link<?= $active('/profile') ?>" href="<?= e(url('/profile')) ?>">Profile &amp; notifications</a>
-                <form method="post" action="<?= e(url('/logout')) ?>"><?= csrf_field() ?><button class="nav-link" type="submit">Sign out</button></form>
+                <a class="nav-link<?= $active('/profile') ?>" href="<?= e(url('/profile')) ?>"><?= e(__('Profile & notifications')) ?></a>
+                <form method="post" action="<?= e(url('/logout')) ?>"><?= csrf_field() ?><button class="nav-link" type="submit"><?= e(__('Sign out')) ?></button></form>
             </div>
         </nav>
         <div class="topbar-actions">
-            <button type="button" class="icon-btn theme-toggle" data-theme-toggle title="Light / dark mode" aria-label="Switch light / dark mode">
+            <button type="button" class="icon-btn theme-toggle" data-theme-toggle title="<?= e(__('Light / dark mode')) ?>" aria-label="<?= e(__('Light / dark mode')) ?>">
                 <svg class="theme-icon-moon" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 14.5A9 9 0 0 1 9.5 3a9 9 0 1 0 11.5 11.5Z"/></svg>
                 <svg class="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>
             </button>
-            <a class="icon-btn" href="<?= e(url('/notifications')) ?>" title="Notifications" aria-label="Notifications">
+            <a class="icon-btn" href="<?= e(url('/notifications')) ?>" title="<?= e(__('Notifications')) ?>" aria-label="<?= e(__('Notifications')) ?>">
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
                 <span class="dot-count" id="notif-count"<?= $unread ? '' : ' hidden' ?>><?= $unread > 99 ? '99+' : (int) $unread ?></span>
             </a>
             <div class="usermenu">
                 <?php $myAvatar = avatar_url($me); ?>
-                <button type="button" class="avatar<?= $myAvatar ? ' avatar-has-img ' . ($me['role'] === 'client' ? 'avatar-team' : 'avatar-photo') : '' ?>" aria-label="Account menu"><?php if ($myAvatar): ?><img src="<?= e($myAvatar) ?>" alt=""><?php else: ?><?= e(initials($me['name'])) ?><?php endif; ?></button>
+                <button type="button" class="avatar<?= $myAvatar ? ' avatar-has-img ' . ($me['role'] === 'client' ? 'avatar-team' : 'avatar-photo') : '' ?>" aria-label="<?= e(__('Account menu')) ?>"><?php if ($myAvatar): ?><img src="<?= e($myAvatar) ?>" alt=""><?php else: ?><?= e(initials($me['name'])) ?><?php endif; ?></button>
                 <div class="usermenu-panel">
                     <div class="usermenu-head">
                         <strong><?= e($me['name']) ?></strong>
-                        <span><?= e(ROLES[$me['role']] ?? '') ?><?php if (!$staff && $me['team_id']): ?> · <?= e((string) scalar('SELECT name FROM teams WHERE id = ?', [$me['team_id']])) ?><?php endif; ?></span>
+                        <span><?= e(lbl(ROLES, $me['role'])) ?><?php if (!$staff && $me['team_id']): ?> · <?= e((string) scalar('SELECT name FROM teams WHERE id = ?', [$me['team_id']])) ?><?php endif; ?></span>
                     </div>
-                    <a href="<?= e(url('/profile')) ?>">Profile &amp; notifications</a>
-                    <form method="post" action="<?= e(url('/logout')) ?>"><?= csrf_field() ?><button type="submit">Sign out</button></form>
+                    <a href="<?= e(url('/profile')) ?>"><?= e(__('Profile & notifications')) ?></a>
+                    <form method="post" action="<?= e(url('/logout')) ?>"><?= csrf_field() ?><button type="submit"><?= e(__('Sign out')) ?></button></form>
                 </div>
             </div>
-            <button type="button" class="hamburger" id="hamburger" aria-label="Menu" aria-controls="mainnav"><span></span><span></span><span></span></button>
+            <button type="button" class="hamburger" id="hamburger" aria-label="<?= e(__('Menu')) ?>" aria-controls="mainnav"><span></span><span></span><span></span></button>
         </div>
     </div>
 </header>
@@ -125,15 +125,16 @@ if ($staff) {
 
 <div class="push-banner" id="push-banner" hidden>
     <div>
-        <strong>Turn on notifications</strong>
-        <span><?= $staff ? 'Get new tickets and reminders on this device.' : 'Get replies from Relog support on this device.' ?></span>
+        <strong><?= e(__('Turn on notifications')) ?></strong>
+        <span><?= e($staff ? __('Get new tickets and reminders on this device.') : 'Get replies from Relog support on this device.') ?></span>
     </div>
     <div class="push-banner-actions">
-        <button type="button" class="btn btn-sm" id="push-enable">Enable</button>
-        <button type="button" class="btn btn-sm btn-ghost" id="push-dismiss">Later</button>
+        <button type="button" class="btn btn-sm" id="push-enable"><?= e(__('Enable')) ?></button>
+        <button type="button" class="btn btn-sm btn-ghost" id="push-dismiss"><?= e(__('Later')) ?></button>
     </div>
 </div>
 
+<?php if (locale() !== 'en'): ?><script>window.RLG_T = <?= json_encode(js_strings(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script><?php endif; ?>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 </body>
 </html>

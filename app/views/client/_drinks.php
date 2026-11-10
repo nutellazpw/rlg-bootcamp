@@ -5,5 +5,5 @@
             <span><?= e($d['name']) ?></span>
         </label>
     <?php endforeach; ?>
-    <?php if (!$drinks): ?><p class="muted">No drinks on the list yet.</p><?php endif; ?>
+    <?php if (!$drinks): ?><p class="muted"><?= e(__('No drinks on the list yet.')) ?></p><?php endif; ?>
 </div>

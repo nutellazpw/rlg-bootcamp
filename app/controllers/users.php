@@ -7,7 +7,7 @@ function users_index(): void
 {
     require_role('admin');
     view('users/index', [
-        'title' => 'Staff accounts',
+        'title' => __('Staff accounts'),
         'rows' => all("SELECT * FROM users WHERE role IN ('admin','manager','support') ORDER BY active DESC, FIELD(role,'admin','manager','support'), name"),
     ]);
 }
@@ -19,11 +19,11 @@ function users_create(): void
     $email = mb_strtolower((string) input('email'));
     $role = (string) input('role');
     if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || !in_array($role, STAFF_ROLES, true)) {
-        flash('error', 'Enter name, a valid email and a role.');
+        flash('error', __('Enter name, a valid email and a role.'));
         redirect('/users');
     }
     if (one('SELECT id FROM users WHERE email = ?', [$email])) {
-        flash('error', 'An account with that email already exists.');
+        flash('error', __('An account with that email already exists.'));
         redirect('/users');
     }
     $id = insert('users', [
@@ -41,11 +41,11 @@ function users_update(int $id): void
     $u = one('SELECT * FROM users WHERE id = ?', [$id]) ?? not_found();
     $role = (string) input('role', $u['role']);
     if (!in_array($role, STAFF_ROLES, true) || $u['role'] === 'client') {
-        flash('error', 'Invalid role.');
+        flash('error', __('Invalid role.'));
         redirect('/users');
     }
     if ((int) $u['id'] === (int) $me['id'] && $role !== 'admin') {
-        flash('error', 'You cannot remove your own administrator role.');
+        flash('error', __('You cannot remove your own administrator role.'));
         redirect('/users');
     }
     update('users', [
@@ -53,7 +53,7 @@ function users_update(int $id): void
         'name' => mb_substr(trim((string) input('name', $u['name'])), 0, 120) ?: $u['name'],
         'phone' => mb_substr((string) input('phone', (string) $u['phone']), 0, 40) ?: null,
     ], 'id = ?', [$id]);
-    flash('success', 'Saved.');
+    flash('success', __('Saved.'));
     redirect('/users');
 }
 
@@ -75,9 +75,9 @@ function users_resend_invite(int $id): void
     if ($u['password_hash']) {
         $token = create_password_token((int) $u['id'], 'reset');
         $link = abs_url('/set-password?token=' . $token);
-        $sent = send_mail($u['email'], 'Reset your RLG Bootcamp password', mail_template('Password reset', 'A Relog staff member sent you a link to set a new password for RLG Bootcamp. The link is valid for 2 hours.', 'Set new password', $link));
-        $sent ? flash('success', 'Password reset link sent to ' . $u['email'] . '.')
-              : flash('warning', 'Email could not be sent. Send this link yourself (valid 2 hours):<br><input class="copy-input" readonly value="' . e($link) . '" onclick="this.select()">', true);
+        $sent = with_locale(user_locale($u), fn () => send_mail($u['email'], __('Reset your RLG Bootcamp password'), mail_template(__('Password reset'), __('A Relog staff member sent you a link to set a new password for RLG Bootcamp. The link is valid for 2 hours.'), __('Set new password'), $link)));
+        $sent ? flash('success', __('Password reset link sent to %s.', $u['email']))
+              : flash('warning', e(__('Email could not be sent. Send this link yourself (valid 2 hours):')) . '<br><input class="copy-input" readonly value="' . e($link) . '" onclick="this.select()">', true);
     } else {
         [$sent, $link] = send_invite($u);
         flash_invite_result($u['email'], $sent, $link);
@@ -98,7 +98,7 @@ function users_toggle(int $id): void
         q('DELETE FROM remember_tokens WHERE user_id = ?', [$id]);
         q('DELETE FROM push_subscriptions WHERE user_id = ?', [$id]);
     }
-    flash('success', $u['name'] . ($active ? ' enabled.' : ' disabled.'));
+    flash('success', $active ? __('%s enabled.', $u['name']) : __('%s disabled.', $u['name']));
     back('/');
 }
 
@@ -112,12 +112,12 @@ function users_avatar(int $id): void
     }
     if (!empty($_POST['remove'])) {
         update('users', ['avatar' => null], 'id = ?', [$id]);
-        flash('success', 'Picture removed.');
+        flash('success', __('Picture removed.'));
     } elseif ($file = store_image_upload('avatar', 'avatars')) {
         update('users', ['avatar' => $file], 'id = ?', [$id]);
-        flash('success', 'Picture saved.');
+        flash('success', __('Picture saved.'));
     } elseif (!isset($_SESSION['flash'])) {
-        flash('error', 'Choose an image.');
+        flash('error', __('Choose an image.'));
     }
     back('/profile');
 }

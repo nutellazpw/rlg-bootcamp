@@ -50,7 +50,7 @@ const GAMES = ['CS2', 'Dota 2', 'Valorant', 'League of Legends', 'Rainbow Six Si
 
 function status_badge(string $status, array $labels): string
 {
-    return '<span class="badge badge-' . e($status) . '">' . e($labels[$status] ?? $status) . '</span>';
+    return '<span class="badge badge-' . e($status) . '">' . e(lbl($labels, $status)) . '</span>';
 }
 
 function bootcamp_find(int $id): ?array
@@ -195,7 +195,7 @@ function availability_warnings(string $from, string $to, array $wanted, ?int $ex
         $need = $wanted[(int) $eq['id']];
         $free = (int) $eq['total_qty'] - $used;
         if ($need > $free) {
-            $warnings[] = sprintf('%s: need %d, only %d free in that period (%d in stock, %d already booked).', $eq['name'], $need, max(0, $free), $eq['total_qty'], $used);
+            $warnings[] = __('%s: need %d, only %d free in that period (%d in stock, %d already booked).', $eq['name'], $need, max(0, $free), (int) $eq['total_qty'], $used);
         }
     }
     return $warnings;
@@ -211,7 +211,7 @@ function upcoming_inventory_warnings(int $days = 60): array
     foreach (all('SELECT id, name, total_qty FROM equipment WHERE active = 1') as $eq) {
         $used = $usage[(int) $eq['id']] ?? 0;
         if ($used > (int) $eq['total_qty']) {
-            $out[] = sprintf('%s: up to %d booked, only %d in stock.', $eq['name'], $used, $eq['total_qty']);
+            $out[] = __('%s: up to %d booked, only %d in stock.', $eq['name'], $used, (int) $eq['total_qty']);
         }
     }
     return $out;
@@ -221,11 +221,11 @@ function upcoming_inventory_warnings(int $days = 60): array
 function notify_room_ready(array $b, ?string $room, array $actor): void
 {
     update('bootcamps', ['room_ready_at' => now()], 'id = ?', [$b['id']]);
-    log_activity((int) $b['id'], 'Room marked ready', $actor);
-    $ready = ($b['ready_by'] ?? null) ? ' (deadline ' . date('d M H:i', strtotime($b['ready_by'])) . ')' : '';
+    log_activity((int) $b['id'], fn () => __('Room marked ready'), $actor);
+    $readyBy = $b['ready_by'] ?? null;
     notify_staff(
-        'Room ready: ' . $b['team_name'],
-        $b['hotel_name'] . ($room ? ' · room ' . $room : '') . ' · by ' . $actor['name'] . $ready,
+        fn () => __('Room ready: %s', $b['team_name']),
+        fn () => $b['hotel_name'] . ($room ? ' · ' . __('room %s', $room) : '') . ' · ' . __('by %s', $actor['name']) . ($readyBy ? ' (' . __('deadline %s', ldate('d M H:i', strtotime($readyBy))) . ')' : ''),
         '/bootcamps/' . $b['id'],
         true,
         (int) $actor['id']
@@ -298,13 +298,14 @@ function ticket_create(array $author, int $teamId, ?int $bootcampId, string $cat
     $label = attachments_label($files);
 
     $team = (string) scalar('SELECT name FROM teams WHERE id = ?', [$teamId]);
-    $room = $bootcampId ? (string) scalar("SELECT CONCAT(h.name, IF(b.room IS NULL OR b.room = '', '', CONCAT(' · room ', b.room))) FROM bootcamps b JOIN hotels h ON h.id = b.hotel_id WHERE b.id = ?", [$bootcampId]) : '';
+    $rb = $bootcampId ? one('SELECT h.name, b.room FROM bootcamps b JOIN hotels h ON h.id = b.hotel_id WHERE b.id = ?', [$bootcampId]) : null;
+    $room = $rb ? fn () => $rb['name'] . ($rb['room'] ? ' · ' . __('room %s', $rb['room']) : '') : null;
     if ($isStaff) {
         notify(team_user_ids($teamId), 'New message from Relog support', $subject, '/tickets/' . $id);
     } else {
         notify_staff(
-            'New ticket #' . $id . ' · ' . $team,
-            '[' . (TICKET_CATEGORIES[$category] ?? $category) . '] ' . $subject . ($room ? ' — ' . $room : '') . ($label ? ' · ' . $label : ''),
+            fn () => __('New ticket #%d · %s', $id, $team),
+            fn () => '[' . lbl(TICKET_CATEGORIES, $category) . '] ' . $subject . ($room ? ' — ' . $room() : '') . ($files ? ' · ' . attachments_label($files) : ''),
             '/tickets/' . $id,
             true,
             (int) $author['id']
@@ -341,11 +342,11 @@ function ticket_add_message(array $ticket, array $author, string $body, array $f
     update('tickets', $data, 'id = ?', [$ticket['id']]);
     ticket_mark_read((int) $ticket['id'], (int) $author['id']);
 
-    $preview = trim(mb_strimwidth(preg_replace('/\s+/', ' ', $body), 0, 140, '…') . ' ' . attachments_label($files));
+    $preview = fn () => trim(mb_strimwidth(preg_replace('/\s+/', ' ', $body), 0, 140, '…') . ' ' . attachments_label($files));
     if ($isStaff) {
         notify(team_user_ids((int) $ticket['team_id']), 'Reply from Relog support', $preview, '/tickets/' . $ticket['id']);
     } else {
-        notify_staff('Ticket #' . $ticket['id'] . ' · ' . $ticket['team_name'], $preview, '/tickets/' . $ticket['id'], true, (int) $author['id']);
+        notify_staff(fn () => __('Ticket #%d · %s', (int) $ticket['id'], $ticket['team_name']), $preview, '/tickets/' . $ticket['id'], true, (int) $author['id']);
     }
     return $id;
 }
@@ -376,7 +377,7 @@ function send_ticket_reminders(): int
         $waiting = (int) floor((time() - strtotime($tk['awaiting_staff_since'])) / 60);
         $label = $waiting >= 120 ? floor($waiting / 60) . ' h' : $waiting . ' min';
         notify_staff(
-            'Reminder: ticket #' . $tk['id'] . ' waiting ' . $label,
+            fn () => __('Reminder: ticket #%d waiting %s', (int) $tk['id'], $label),
             $tk['team_name'] . ' — ' . $tk['subject'],
             '/tickets/' . $tk['id']
         );
@@ -389,8 +390,10 @@ function send_ticket_reminders(): int
 // Activity log (history of changes)
 // ---------------------------------------------------------------------------
 
-function log_activity(?int $bootcampId, string $action, ?array $actor = null): void
+/** History entries are written in Serbian (staff-only log). $action may be a Closure using __(). */
+function log_activity(?int $bootcampId, $action, ?array $actor = null): void
 {
+    $action = with_locale('sr', fn () => msg_text($action));
     $actor = $actor ?? (function_exists('user') && session_status() === PHP_SESSION_ACTIVE ? user() : null);
     insert('activity_log', [
         'bootcamp_id' => $bootcampId,
@@ -418,11 +421,11 @@ function chair_summary_text(array $chairs): string
         }
     }
     if (!$groups) {
-        return 'All chairs keep both armrests';
+        return __('All chairs keep both armrests');
     }
     $parts = [];
     foreach ($groups as $opt => $nos) {
-        $parts[] = ARMREST_OPTIONS[$opt] . ': #' . implode(', #', $nos);
+        $parts[] = lbl(ARMREST_OPTIONS, $opt) . ': #' . implode(', #', $nos);
     }
     return implode(' · ', $parts);
 }
@@ -433,8 +436,13 @@ function chair_summary_text(array $chairs): string
 
 const CHECKLIST_PHASES = ['setup' => 'Room setup', 'checkout' => 'Pickup & check-out'];
 
-/** Items generated from the booking. Keyed so they can be kept in sync when the booking changes. */
+/** Items generated from the booking. Keyed so they can be kept in sync when the booking changes. Always in Serbian (printed for the crew). */
 function checklist_wanted(array $b): array
+{
+    return with_locale('sr', fn () => checklist_wanted_build($b));
+}
+
+function checklist_wanted_build(array $b): array
 {
     $id = (int) $b['id'];
     $items = bootcamp_items($id);
@@ -448,25 +456,25 @@ function checklist_wanted(array $b): array
     foreach ($items as $it) {
         $detail = $it['spec'] ?: null;
         if ($it['category'] === 'chair') {
-            $detail = chair_summary_text($chairs) . (!empty($b['chairs_note']) ? ' — note: ' . $b['chairs_note'] : '');
+            $detail = chair_summary_text($chairs) . (!empty($b['chairs_note']) ? ' — ' . __('note: %s', $b['chairs_note']) : '');
         }
         $setup['eq:' . $it['id']] = [(int) $it['qty'] . '× ' . $it['name'], $detail, $sort];
-        $checkout['out_eq:' . $it['id']] = ['Collect ' . (int) $it['qty'] . '× ' . $it['name'], null, $sort];
+        $checkout['out_eq:' . $it['id']] = [__('Collect %s', (int) $it['qty'] . '× ' . $it['name']), null, $sort];
         $sort++;
     }
     foreach ($extras as $x) {
         $from = $x['bill_from'] ?: $b['start_date'];
         $to = $x['bill_to'] ?: $b['end_date'];
-        $setup['extra:' . $x['id']] = [(int) $x['qty'] . '× ' . $x['equipment_name'] . ' (extra)', 'In room ' . fmt_date($from, 'd M') . ' → ' . fmt_date($to, 'd M'), 100 + $sort];
-        $checkout['out_extra:' . $x['id']] = ['Collect ' . (int) $x['qty'] . '× ' . $x['equipment_name'] . ' (extra)', null, 100 + $sort];
+        $setup['extra:' . $x['id']] = [(int) $x['qty'] . '× ' . $x['equipment_name'] . ' (' . __('extra') . ')', __('In room %s → %s', fmt_date($from, 'd M'), fmt_date($to, 'd M')), 100 + $sort];
+        $checkout['out_extra:' . $x['id']] = [__('Collect %s', (int) $x['qty'] . '× ' . $x['equipment_name']) . ' (' . __('extra') . ')', null, 100 + $sort];
         $sort++;
     }
-    $setup['net'] = ['Internet / network tested on every PC', null, 200];
-    $setup['drinks'] = ['Fridge stocked', ($drinks ? implode(', ', $drinks) : 'Team has not chosen drinks yet') . (!empty($b['drinks_note']) ? ' — note: ' . $b['drinks_note'] : ''), 201];
-    $setup['clean'] = ['Room clean, cables tidy', null, 202];
-    $checkout['damage'] = ['Room and equipment checked for damage', 'Write notes and add photos below if anything is damaged', 300];
-    $checkout['fridge'] = ['Fridge emptied', null, 301];
-    $checkout['keys'] = ['Room handed back to the hotel', null, 302];
+    $setup['net'] = [__('Internet / network tested on every PC'), null, 200];
+    $setup['drinks'] = [__('Fridge stocked'), ($drinks ? implode(', ', $drinks) : __('Team has not chosen drinks yet')) . (!empty($b['drinks_note']) ? ' — ' . __('note: %s', $b['drinks_note']) : ''), 201];
+    $setup['clean'] = [__('Room clean, cables tidy'), null, 202];
+    $checkout['damage'] = [__('Room and equipment checked for damage'), __('Write notes and add photos below if anything is damaged'), 300];
+    $checkout['fridge'] = [__('Fridge emptied'), null, 301];
+    $checkout['keys'] = [__('Room handed back to the hotel'), null, 302];
     return ['setup' => $setup, 'checkout' => $checkout];
 }
 
@@ -542,7 +550,8 @@ function send_bootcamp_reminders(): int
         if (!$b['room']) {
             $kind = $days <= 1 ? 'room_1d' : 'room_3d';
             if (reminder_once($id, $kind)) {
-                notify(manager_ids(), 'No room yet: ' . $b['team_name'], 'Bootcamp at ' . $b['hotel_name'] . ' starts ' . $when . '.', '/bootcamps/' . $id, '🏨 No room assigned yet: ' . $b['team_name'] . ' at ' . $b['hotel_name'] . ', starts ' . $when);
+                $whenL = fn () => $days === 0 ? __('today') : ($days === 1 ? __('tomorrow') : __('in %d days', $days));
+                notify(manager_ids(), fn () => __('No room yet: %s', $b['team_name']), fn () => __('Bootcamp at %s starts %s.', $b['hotel_name'], $whenL()), '/bootcamps/' . $id, fn () => '🏨 ' . __('No room assigned yet: %s at %s, starts %s', $b['team_name'], $b['hotel_name'], $whenL()));
                 $sent++;
             }
         }
@@ -560,7 +569,8 @@ function send_bootcamp_reminders(): int
                     abs_url('/my/bootcamp/' . $id)
                 ));
             }
-            notify(manager_ids(), $b['team_name'] . ' has not chosen ' . ($needDrinks && $needChairs ? 'drinks & chairs' : ($needDrinks ? 'drinks' : 'chairs')), 'Reminder sent to the team. Starts ' . $when . '.', '/bootcamps/' . $id);
+            $whenL = fn () => $days === 0 ? __('today') : ($days === 1 ? __('tomorrow') : __('in %d days', $days));
+            notify(manager_ids(), fn () => __('%s has not chosen %s', $b['team_name'], $needDrinks && $needChairs ? __('drinks & chairs') : ($needDrinks ? __('drinks') : __('chairs'))), fn () => __('Reminder sent to the team. Starts %s.', $whenL()), '/bootcamps/' . $id);
             $sent++;
         }
 
@@ -615,21 +625,21 @@ function send_setup_deadline_reminders(): int
         }
         $mins = (int) floor((strtotime($b['ready_by']) - time()) / 60);
         [$done, $total] = checklist_progress($id, 'setup');
-        $where = $b['hotel_name'] . ($b['room'] ? ' · room ' . $b['room'] : ' · no room yet') . " · checklist $done/$total";
-        $deadline = date('D H:i', strtotime($b['ready_by']));
+        $where = fn () => $b['hotel_name'] . ' · ' . ($b['room'] ? __('room %s', $b['room']) : __('no room yet')) . ' · ' . __('checklist %d/%d', $done, $total);
+        $deadline = fn () => ldate('D H:i', strtotime($b['ready_by']));
         if ($mins <= 0) {
             if (reminder_once($id, 'setup_late')) {
-                notify_staff('⚠ Room NOT ready: ' . $b['team_name'], 'Deadline was ' . $deadline . ' · ' . $where, '/bootcamps/' . $id . '#checklist');
+                notify_staff(fn () => '⚠ ' . __('Room NOT ready: %s', $b['team_name']), fn () => __('Deadline was %s', $deadline()) . ' · ' . $where(), '/bootcamps/' . $id . '#checklist');
                 $sent++;
             }
         } elseif ($mins <= 180) {
             if (reminder_once($id, 'setup_3h')) {
                 $left = $mins >= 60 ? floor($mins / 60) . ' h ' . ($mins % 60) . ' min' : $mins . ' min';
-                notify_staff('Room setup due in ' . $left . ': ' . $b['team_name'], 'Ready by ' . $deadline . ' · ' . $where, '/bootcamps/' . $id . '#checklist');
+                notify_staff(fn () => __('Room setup due in %s: %s', $left, $b['team_name']), fn () => __('Ready by %s', $deadline()) . ' · ' . $where(), '/bootcamps/' . $id . '#checklist');
                 $sent++;
             }
         } elseif (reminder_once($id, 'setup_24h')) {
-            notify_staff('Room setup due ' . $deadline . ': ' . $b['team_name'], $where, '/bootcamps/' . $id . '#checklist');
+            notify_staff(fn () => __('Room setup due %s: %s', $deadline(), $b['team_name']), $where, '/bootcamps/' . $id . '#checklist');
             $sent++;
         }
     }
@@ -696,13 +706,13 @@ function store_image_upload(string $field, string $dir): ?string
         return null;
     }
     if ($f['size'] > 10 * 1024 * 1024) {
-        flash('error', 'Image is too large (max 10 MB).');
+        flash('error', __('Image is too large (max 10 MB).'));
         return null;
     }
     $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
     $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'][$mime] ?? null;
     if (!$ext) {
-        flash('error', 'Use a JPG, PNG, WEBP or GIF image.');
+        flash('error', __('Use a JPG, PNG, WEBP or GIF image.'));
         return null;
     }
     $path = APP_ROOT . '/storage/uploads/' . $dir;
@@ -753,7 +763,7 @@ function action_tags(array $flags): string
 {
     $out = '';
     foreach ($flags as $label => $n) {
-        $out .= '<span class="action-tag">' . e($label) . ($n > 1 ? ' ×' . $n : '') . '</span>';
+        $out .= '<span class="action-tag">' . e(__($label)) . ($n > 1 ? ' ×' . $n : '') . '</span>';
     }
     return $out;
 }
@@ -875,4 +885,19 @@ function purge_files_now(): void
         @unlink($f);
     }
     $GLOBALS['__purge_dirs'] = $GLOBALS['__purge_files'] = [];
+}
+
+/** Ticket system lines are stored in English (the team sees them); staff see them translated. */
+function system_message_text(string $body): string
+{
+    if (locale() === 'en') {
+        return $body;
+    }
+    if (preg_match('/^(.+) marked the ticket as (.+)\.$/u', $body, $m)) {
+        return __('%s marked the ticket as %s.', $m[1], __($m[2]));
+    }
+    if (preg_match('/^Assigned to (.+)\.$/u', $body, $m)) {
+        return __('Assigned to %s.', $m[1]);
+    }
+    return __($body);
 }

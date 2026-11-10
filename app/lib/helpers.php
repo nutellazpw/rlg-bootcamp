@@ -119,9 +119,9 @@ function csrf_check(): void
     if (!is_string($token) || !hash_equals(csrf_token(), $token)) {
         http_response_code(419);
         if (wants_json()) {
-            json_out(['error' => 'Session expired. Reload the page.'], 419);
+            json_out(['error' => __('Session expired. Reload the page.')], 419);
         }
-        flash('error', 'Your session expired. Please try again.');
+        flash('error', __('Your session expired. Please try again.'));
         back();
     }
 }
@@ -165,14 +165,14 @@ function partial(string $template, array $data = []): void
 function not_found(): void
 {
     http_response_code(404);
-    view('errors/404', ['title' => 'Not found'], user() ? 'layout' : 'layout_auth');
+    view('errors/404', ['title' => __('Not found')], user() ? 'layout' : 'layout_auth');
     exit;
 }
 
 function forbidden(): void
 {
     http_response_code(403);
-    view('errors/403', ['title' => 'No access'], user() ? 'layout' : 'layout_auth');
+    view('errors/403', ['title' => __('No access')], user() ? 'layout' : 'layout_auth');
     exit;
 }
 
@@ -183,12 +183,12 @@ function fmt_date(?string $d, string $format = 'd M Y'): string
     if (!$d) {
         return '—';
     }
-    return date($format, strtotime($d));
+    return ldate($format, strtotime($d));
 }
 
 function fmt_dt(?string $d): string
 {
-    return $d ? date('d M Y, H:i', strtotime($d)) : '—';
+    return $d ? ldate('d M Y, H:i', strtotime($d)) : '—';
 }
 
 function fmt_range(string $from, string $to): string
@@ -197,11 +197,11 @@ function fmt_range(string $from, string $to): string
     $b = strtotime($to);
     if (date('Y', $a) === date('Y', $b)) {
         if (date('m', $a) === date('m', $b)) {
-            return date('d', $a) . '–' . date('d M Y', $b);
+            return date('d', $a) . '–' . ldate('d M Y', $b);
         }
-        return date('d M', $a) . ' – ' . date('d M Y', $b);
+        return ldate('d M', $a) . ' – ' . ldate('d M Y', $b);
     }
-    return date('d M Y', $a) . ' – ' . date('d M Y', $b);
+    return ldate('d M Y', $a) . ' – ' . ldate('d M Y', $b);
 }
 
 function days_between(string $from, string $to): int
@@ -224,18 +224,18 @@ function time_ago(?string $d): string
     }
     $s = time() - strtotime($d);
     if ($s < 60) {
-        return 'just now';
+        return __('just now');
     }
     if ($s < 3600) {
-        return floor($s / 60) . ' min ago';
+        return __('%d min ago', (int) floor($s / 60));
     }
     if ($s < 86400) {
-        return floor($s / 3600) . ' h ago';
+        return __('%d h ago', (int) floor($s / 3600));
     }
     if ($s < 86400 * 7) {
-        return floor($s / 86400) . ' d ago';
+        return __('%d d ago', (int) floor($s / 86400));
     }
-    return date('d M Y', strtotime($d));
+    return ldate('d M Y', strtotime($d));
 }
 
 function initials(string $name): string

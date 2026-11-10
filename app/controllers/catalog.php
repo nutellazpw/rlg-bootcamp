@@ -7,7 +7,7 @@ function catalog_hotels(): void
 {
     require_staff();
     view('catalog/hotels', [
-        'title' => 'Hotels',
+        'title' => __('Hotels'),
         'rows' => all("SELECT h.*, (SELECT COUNT(*) FROM bootcamps b WHERE b.hotel_id = h.id AND b.status NOT IN ('cancelled','completed') AND b.end_date >= CURDATE()) AS upcoming FROM hotels h ORDER BY h.active DESC, h.name"),
     ]);
 }
@@ -17,7 +17,7 @@ function catalog_hotel_save(?int $id = null): void
     require_role('admin', 'manager');
     $name = mb_substr(trim((string) input('name')), 0, 120);
     if ($name === '') {
-        flash('error', 'Enter the hotel name.');
+        flash('error', __('Enter the hotel name.'));
         redirect('/hotels');
     }
     $data = [
@@ -33,7 +33,7 @@ function catalog_hotel_save(?int $id = null): void
     } else {
         insert('hotels', $data);
     }
-    flash('success', 'Hotel saved.');
+    flash('success', __('Hotel saved.'));
     redirect('/hotels');
 }
 
@@ -46,7 +46,7 @@ function catalog_inventory(): void
     $usageToday = equipment_peak_usage($today, $today);
     $usage30 = equipment_peak_usage($today, date('Y-m-d', strtotime('+30 days')));
     view('catalog/inventory', [
-        'title' => 'Inventory',
+        'title' => __('Inventory'),
         'rows' => all('SELECT * FROM equipment ORDER BY active DESC, FIELD(category,"pc","monitor","table","chair","peripheral","other"), sort, name'),
         'usageToday' => $usageToday,
         'usage30' => $usage30,
@@ -59,7 +59,7 @@ function catalog_equipment_save(?int $id = null): void
     $name = mb_substr(trim((string) input('name')), 0, 120);
     $cat = (string) input('category');
     if ($name === '' || !array_key_exists($cat, EQUIPMENT_CATEGORIES)) {
-        flash('error', 'Enter a name and category.');
+        flash('error', __('Enter a name and category.'));
         redirect('/inventory');
     }
     $data = [
@@ -78,7 +78,7 @@ function catalog_equipment_save(?int $id = null): void
     } else {
         insert('equipment', $data);
     }
-    flash('success', 'Saved.');
+    flash('success', __('Saved.'));
     redirect('/inventory');
 }
 
@@ -88,7 +88,7 @@ function catalog_drinks(): void
 {
     require_staff();
     view('catalog/drinks', [
-        'title' => 'Drinks',
+        'title' => __('Drinks'),
         'rows' => all('SELECT d.*, (SELECT COUNT(*) FROM bootcamp_drinks bd JOIN bootcamps b ON b.id = bd.bootcamp_id WHERE bd.drink_id = d.id AND b.end_date >= CURDATE() AND b.status <> "cancelled") AS chosen FROM drinks d ORDER BY d.active DESC, d.sort, d.name'),
     ]);
 }
@@ -98,7 +98,7 @@ function catalog_drink_save(?int $id = null): void
     require_role('admin', 'manager');
     $name = mb_substr(trim((string) input('name')), 0, 80);
     if ($name === '') {
-        flash('error', 'Enter the drink name.');
+        flash('error', __('Enter the drink name.'));
         redirect('/drinks');
     }
     $data = ['name' => $name, 'active' => input('active', $id ? '' : '1') ? 1 : 0, 'sort' => input_int('sort')];
@@ -109,7 +109,7 @@ function catalog_drink_save(?int $id = null): void
         $data['sort'] = (int) scalar('SELECT COALESCE(MAX(sort),0)+1 FROM drinks');
         insert('drinks', $data);
     }
-    flash('success', 'Saved.');
+    flash('success', __('Saved.'));
     redirect('/drinks');
 }
 
@@ -122,13 +122,13 @@ function catalog_settings(): void
         $action = (string) input('action');
         if ($action === 'test_telegram') {
             $ok = telegram_send('✅ RLG Bootcamp test message from ' . $me['name']);
-            $ok ? flash('success', 'Telegram message sent.') : flash('error', 'Telegram failed. Check bot_token and chat_id in app/config.php (see storage/logs/telegram.log).');
+            $ok ? flash('success', __('Telegram message sent.')) : flash('error', __('Telegram failed. Check bot_token and chat_id in app/config.php (see storage/logs/telegram.log).'));
         } elseif ($action === 'test_mail') {
-            $ok = send_mail($me['email'], 'RLG Bootcamp test email', mail_template('Test email', 'If you can read this, outgoing email works.'));
-            $ok ? flash('success', 'Test email sent to ' . $me['email'] . '.') : flash('error', 'Email failed. Check the mail settings in app/config.php (see storage/logs/mail.log).');
+            $ok = send_mail($me['email'], __('RLG Bootcamp test email'), mail_template(__('Test email'), __('If you can read this, outgoing email works.')));
+            $ok ? flash('success', __('Test email sent to %s.', $me['email'])) : flash('error', __('Email failed. Check the mail settings in app/config.php (see storage/logs/mail.log).'));
         } elseif ($action === 'test_reminders') {
             require_once APP_DIR . '/cron_tasks.php';
-            flash('success', 'Cron ran: ' . str_replace("\n", ' · ', trim(run_cron_tasks())));
+            flash('success', __('Cron ran: %s', str_replace("\n", ' · ', trim(run_cron_tasks()))));
         }
         redirect('/settings');
     }
@@ -139,7 +139,7 @@ function catalog_settings(): void
         $vapidOk = false;
     }
     view('catalog/settings', [
-        'title' => 'Settings',
+        'title' => __('Settings'),
         'lastCron' => setting('last_cron_run'),
         'telegramOn' => config('telegram.bot_token') && config('telegram.chat_id'),
         'mailHost' => config('mail.host') ?: 'PHP mail()',

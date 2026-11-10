@@ -322,6 +322,9 @@ function migrations(): array
         6 => [
             "ALTER TABLE users ADD COLUMN avatar VARCHAR(190) NULL",
         ],
+        7 => [
+            "ALTER TABLE users ADD COLUMN lang VARCHAR(5) NULL",
+        ],
     ];
 }
 

@@ -5,6 +5,7 @@
   const meta = (n) => (document.querySelector('meta[name="' + n + '"]') || {}).content || '';
   const BASE = meta('base-path');
   const CSRF = meta('csrf-token');
+  const T = (s) => (window.RLG_T && window.RLG_T[s]) || s;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const store = {
@@ -21,7 +22,7 @@
       headers['Content-Type'] = 'application/json';
     }
     return fetch(BASE + path, { method: opts.method || 'GET', headers, body, credentials: 'same-origin' })
-      .then((r) => r.json().catch(() => ({})).then((d) => { if (!r.ok) throw Object.assign(new Error(d.error || 'Request failed'), { data: d }); return d; }));
+      .then((r) => r.json().catch(() => ({})).then((d) => { if (!r.ok) throw Object.assign(new Error(d.error || T('Request failed')), { data: d }); return d; }));
   }
 
   // ---------- Navigation ----------
@@ -100,7 +101,7 @@
           chip.innerHTML = '<img alt="">';
           chip.firstChild.src = url;
         } else if (f.type.startsWith('video/')) {
-          chip.innerHTML = '<video muted playsinline preload="metadata"></video><span class="vid">▶ video</span>';
+          chip.innerHTML = '<video muted playsinline preload="metadata"></video><span class="vid">▶ ' + T('video') + '</span>';
           chip.firstChild.src = url;
         } else {
           chip.textContent = f.name;
@@ -108,7 +109,7 @@
         const x = document.createElement('button');
         x.type = 'button';
         x.textContent = '×';
-        x.setAttribute('aria-label', 'Remove');
+        x.setAttribute('aria-label', T('Remove'));
         x.addEventListener('click', () => { picked.splice(i, 1); sync(); });
         chip.appendChild(x);
         preview.appendChild(chip);
@@ -211,7 +212,7 @@
 
   async function subscribe() {
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') throw new Error('Notifications are blocked. Allow them in the browser settings for this site.');
+    if (perm !== 'granted') throw new Error(T('Notifications are blocked. Allow them in the browser settings for this site.'));
     const { key } = await api('/api/push/key');
     let sub = await swReg.pushManager.getSubscription();
     if (!sub) {
@@ -268,23 +269,23 @@
     if (!state) return;
     const on = $('#push-on'), off = $('#push-off'), test = $('#push-test'), how = $('#ios-howto');
     if (isIOS && !standalone) {
-      state.innerHTML = '<span class="text-warn">Install the app to get notifications on iPhone.</span>';
+      state.innerHTML = '<span class="text-warn">' + T('Install the app to get notifications on iPhone.') + '</span>';
       how.hidden = false;
       return;
     }
     if (!pushSupported || !swReg) {
-      state.innerHTML = '<span class="text-warn">This browser does not support push notifications.</span>';
+      state.innerHTML = '<span class="text-warn">' + T('This browser does not support push notifications.') + '</span>';
       return;
     }
     if (Notification.permission === 'denied') {
-      state.innerHTML = '<span class="text-danger">Notifications are blocked for this site.</span> Allow them in the browser / phone settings, then reload.';
+      state.innerHTML = '<span class="text-danger">' + T('Notifications are blocked for this site.') + '</span> ' + T('Allow them in the browser / phone settings, then reload.');
       return;
     }
     if (sub && Notification.permission === 'granted') {
-      state.innerHTML = '<span class="text-ok">● Notifications are on for this device.</span>';
+      state.innerHTML = '<span class="text-ok">● ' + T('Notifications are on for this device.') + '</span>';
       on.hidden = true; off.hidden = false; test.hidden = false;
     } else {
-      state.innerHTML = 'Notifications are off on this device.';
+      state.innerHTML = T('Notifications are off on this device.');
       on.hidden = false; off.hidden = true; test.hidden = true;
     }
   }
@@ -301,13 +302,13 @@
   const pushOn = $('#push-on');
   if (pushOn) {
     pushOn.addEventListener('click', async () => {
-      try { const s = await subscribe(); renderPushPanel(s); alertMsg('Notifications enabled.', 'success'); } catch (e) { alertMsg(e.message); }
+      try { const s = await subscribe(); renderPushPanel(s); alertMsg(T('Notifications enabled.'), 'success'); } catch (e) { alertMsg(e.message); }
     });
     $('#push-off').addEventListener('click', async () => {
       try { await unsubscribe(); renderPushPanel(null); location.reload(); } catch (e) { alertMsg(e.message); }
     });
     $('#push-test').addEventListener('click', async () => {
-      try { await api('/api/push/test', { method: 'POST' }); alertMsg('Test sent — it should arrive in a few seconds.', 'success'); } catch (e) { alertMsg(e.message); }
+      try { await api('/api/push/test', { method: 'POST' }); alertMsg(T('Test sent — it should arrive in a few seconds.'), 'success'); } catch (e) { alertMsg(e.message); }
     });
   }
   $$('[data-remove-device]').forEach((b) => b.addEventListener('click', async () => {
@@ -392,7 +393,7 @@
           if (!ev.lengthComputable) return;
           const pct = Math.round(ev.loaded / ev.total * 100);
           $('i', bar).style.width = pct + '%';
-          $('span', bar).textContent = pct < 100 ? 'Uploading… ' + pct + '%' : 'Processing…';
+          $('span', bar).textContent = pct < 100 ? T('Uploading…') + ' ' + pct + '%' : T('Processing…');
         };
       }
       xhr.onload = () => {
@@ -404,10 +405,10 @@
           apply(d);
           if (d.warning) alertMsg(d.warning, 'warning');
         } else {
-          alertMsg(d.error || (xhr.status === 413 ? 'The file is too large.' : 'Could not send. Try again.'));
+          alertMsg(d.error || (xhr.status === 413 ? T('The file is too large.') : T('Could not send. Try again.')));
         }
       };
-      xhr.onerror = () => alertMsg('Network error — the message was not sent.');
+      xhr.onerror = () => alertMsg(T('Network error — the message was not sent.'));
       xhr.onloadend = () => {
         btn.disabled = false;
         if (bar) { bar.hidden = true; $('i', bar).style.width = '0'; }
@@ -432,11 +433,11 @@
       api('/api/availability', { method: 'POST', body: fd }).then((d) => {
         $$('[data-free-for]', bf).forEach((el) => {
           const free = d.free ? d.free[el.dataset.freeFor] : undefined;
-          el.textContent = free === undefined ? '' : 'free ' + Math.max(0, free);
+          el.textContent = free === undefined ? '' : T('free') + ' ' + Math.max(0, free);
           el.classList.toggle('none', free !== undefined && free <= 0);
         });
         if (d.warnings && d.warnings.length) {
-          box.innerHTML = '<strong>Not enough in stock</strong><br>' + d.warnings.map((w) => w.replace(/</g, '&lt;')).join('<br>');
+          box.innerHTML = '<strong>' + T('Not enough in stock') + '</strong><br>' + d.warnings.map((w) => w.replace(/</g, '&lt;')).join('<br>');
           box.hidden = false;
         } else {
           box.hidden = true;

@@ -55,7 +55,7 @@ function mail_template(string $heading, string $bodyHtml, ?string $buttonText = 
             . '<td bgcolor="#FF6700" style="background:#FF6700;border-radius:0 12px 0 12px">'
             . '<a href="' . e($buttonUrl) . '" style="display:inline-block;padding:15px 30px;' . $font . ';font-size:17px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;text-transform:uppercase;letter-spacing:.5px">' . e($buttonText) . '</a>'
             . '</td></tr></table>'
-            . '<p style="margin:18px 0 0;' . $font . ';font-size:13px;line-height:20px;color:#666666">If the button does not work, open this link:<br>'
+            . '<p style="margin:18px 0 0;' . $font . ';font-size:13px;line-height:20px;color:#666666">' . e(__('If the button does not work, open this link:')) . '<br>'
             . '<a href="' . e($buttonUrl) . '" style="color:#D45600;word-break:break-all">' . e($buttonUrl) . '</a></p>';
     }
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'

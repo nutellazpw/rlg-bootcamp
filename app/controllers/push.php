@@ -14,7 +14,7 @@ function push_key(): void
     try {
         json_out(['key' => vapid_keys()['public']]);
     } catch (Throwable $ex) {
-        json_out(['error' => 'Push is not available on this server.'], 500);
+        json_out(['error' => __('Push is not available on this server.')], 500);
     }
 }
 
@@ -92,6 +92,6 @@ function push_pending(): void
 function push_test(): void
 {
     $u = require_login();
-    notify([(int) $u['id']], 'Test notification', 'Notifications work on this device. 👍', '/profile');
+    notify([(int) $u['id']], fn () => __('Test notification'), fn () => __('Notifications work on this device. 👍'), '/profile');
     json_out(['ok' => true]);
 }

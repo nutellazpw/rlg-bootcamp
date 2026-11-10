@@ -48,7 +48,7 @@ function tickets_index(): void
          ORDER BY tk.status = "resolved", (tk.awaiting_staff_since IS NULL), tk.updated_at DESC LIMIT 300',
         array_merge([(int) $u['id']], array_slice($params, 0, -1))
     );
-    view('tickets/index', ['title' => $staff ? 'Tickets' : 'Support', 'rows' => $rows, 'tab' => $tab, 'cat' => $cat, 'staff' => $staff]);
+    view('tickets/index', ['title' => $staff ? __('Tickets') : 'Support', 'rows' => $rows, 'tab' => $tab, 'cat' => $cat, 'staff' => $staff]);
 }
 
 function tickets_create(): void
@@ -65,7 +65,7 @@ function tickets_create(): void
         $b = client_current_bootcamp($u);
     }
     if ($staff && !$b) {
-        flash('info', 'Open a bootcamp and use “Message team” to start a conversation with that team.');
+        flash('info', __('Open a bootcamp and use “Message team” to start a conversation with that team.'));
         redirect('/bootcamps');
     }
     $subject = (string) input('subject');
@@ -74,7 +74,7 @@ function tickets_create(): void
     if (is_post()) {
         [$files, $fileErrors] = collect_uploads('files');
         if ($subject === '' || ($body === '' && !$files)) {
-            $errors[] = 'Write a subject and a message.';
+            $errors[] = __('Write a subject and a message.');
         }
         if ($fileErrors && !$files && $body === '') {
             $errors = array_merge($errors, $fileErrors);
@@ -82,15 +82,15 @@ function tickets_create(): void
         if (!$errors) {
             $teamId = $b ? (int) $b['team_id'] : (int) $u['team_id'];
             $id = ticket_create($u, $teamId, $b ? (int) $b['id'] : null, $category, $subject, $body, $files);
-            flash('success', $staff ? 'Message sent to the team.' : 'Ticket sent. Our support team has been notified.');
+            flash('success', $staff ? __('Message sent to the team.') : 'Ticket sent. Our support team has been notified.');
             if ($fileErrors) {
-                flash('warning', 'Some files were not attached: ' . implode(' ', $fileErrors));
+                flash('warning', __('Some files were not attached: %s', implode(' ', $fileErrors)));
             }
             redirect('/tickets/' . $id);
         }
     }
     view('tickets/create', [
-        'title' => $staff ? 'Message team' : 'New ticket',
+        'title' => $staff ? __('Message team') : 'New ticket',
         'b' => $b, 'staff' => $staff, 'errors' => $errors,
         'subject' => $subject, 'body' => $body, 'category' => $category,
     ]);
@@ -105,7 +105,7 @@ function tickets_show(int $id): void
     // Opening a ticket counts as reading its notifications
     q('UPDATE notifications SET read_at = NOW() WHERE user_id = ? AND read_at IS NULL AND url = ?', [$u['id'], '/tickets/' . $id]);
     view('tickets/show', [
-        'title' => 'Ticket #' . $id,
+        'title' => __('Ticket #%d', $id),
         't' => $t,
         'messages' => $messages,
         'staffUsers' => is_staff($u) ? all("SELECT id, name FROM users WHERE active = 1 AND role IN ('admin','manager','support') ORDER BY name") : [],
@@ -127,7 +127,7 @@ function tickets_reply(int $id): void
     }
     if ($body === '' && !$files) {
         if (wants_json()) {
-            json_out(['error' => 'Empty message'], 422);
+            json_out(['error' => __('Empty message')], 422);
         }
         redirect('/tickets/' . $id);
     }
@@ -136,7 +136,7 @@ function tickets_reply(int $id): void
         if (wants_json()) {
             $GLOBALS['__reply_warning'] = implode(' ', $fileErrors);
         } else {
-            flash('warning', 'Sent, but: ' . implode(' ', $fileErrors));
+            flash('warning', __('Sent, but: %s', implode(' ', $fileErrors)));
         }
     }
     if (wants_json()) {
@@ -167,7 +167,7 @@ function tickets_update(int $id): void
             $data['assigned_to'] = $assignee;
             ticket_system_message($id, $assignee ? 'Assigned to ' . $name . '.' : 'Unassigned.');
             if ($assignee && $assignee !== (int) $u['id']) {
-                notify([$assignee], 'Ticket #' . $id . ' assigned to you', $t['team_name'] . ' — ' . $t['subject'], '/tickets/' . $id);
+                notify([$assignee], fn () => __('Ticket #%d assigned to you', $id), $t['team_name'] . ' — ' . $t['subject'], '/tickets/' . $id);
             }
         }
     }
@@ -196,7 +196,7 @@ function tickets_messages(int $id): void
         'html' => $html,
         'last_id' => $msgs ? (int) end($msgs)['id'] : $after,
         'status' => $fresh['status'],
-        'status_label' => TICKET_STATUSES[$fresh['status']] ?? $fresh['status'],
+        'status_label' => lbl(TICKET_STATUSES, $fresh['status']),
     ]);
 }
 

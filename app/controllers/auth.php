@@ -64,12 +64,12 @@ function auth_forgot(): void
             if ($u) {
                 $token = create_password_token((int) $u['id'], 'reset');
                 $link = abs_url('/set-password?token=' . $token);
-                send_mail($u['email'], 'Reset your RLG Bootcamp password', mail_template(
-                    'Password reset',
-                    'Someone asked to reset the password for your RLG Bootcamp account. If it was you, click the button below. The link is valid for 2 hours.<br><br>If you did not ask for this, ignore this email.',
-                    'Reset password',
+                with_locale(user_locale($u), fn () => send_mail($u['email'], __('Reset your RLG Bootcamp password'), mail_template(
+                    __('Password reset'),
+                    e(__('Someone asked to reset the password for your RLG Bootcamp account. If it was you, click the button below. The link is valid for 2 hours.')) . '<br><br>' . e(__('If you did not ask for this, ignore this email.')),
+                    __('Reset password'),
                     $link
-                ));
+                )));
             }
         }
         $sent = true;

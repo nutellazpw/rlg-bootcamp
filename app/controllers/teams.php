@@ -15,18 +15,18 @@ function teams_index(): void
         $sql .= ' WHERE t.name LIKE ? OR t.contact_name LIKE ?';
         $params = ['%' . $search . '%', '%' . $search . '%'];
     }
-    view('teams/index', ['title' => 'Teams', 'rows' => all($sql . ' ORDER BY t.name', $params), 'search' => $search]);
+    view('teams/index', ['title' => __('Teams'), 'rows' => all($sql . ' ORDER BY t.name', $params), 'search' => $search]);
 }
 
 function teams_save(?array $existing): array
 {
     $name = mb_substr((string) input('name'), 0, 120);
     if ($name === '') {
-        return [null, ['Enter the team name.']];
+        return [null, [__('Enter the team name.')]];
     }
     $email = mb_strtolower((string) input('contact_email'));
     if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return [null, ['Contact email is not valid.']];
+        return [null, [__('Contact email is not valid.')]];
     }
     $data = [
         'name' => $name,
@@ -62,13 +62,13 @@ function teams_create(): void
             if (!empty($_POST['invite']) && input('contact_email') !== '') {
                 teams_create_account($id, (string) input('contact_name') ?: (string) input('name'), (string) input('contact_email'), (string) input('contact_phone'));
             } else {
-                flash('success', 'Team added.');
+                flash('success', __('Team added.'));
             }
             redirect('/teams/' . $id);
         }
         $t = $_POST;
     }
-    view('teams/form', ['title' => 'New team', 't' => $t, 'isNew' => true, 'errors' => $errors]);
+    view('teams/form', ['title' => __('New team'), 't' => $t, 'isNew' => true, 'errors' => $errors]);
 }
 
 function teams_edit(int $id): void
@@ -80,12 +80,12 @@ function teams_edit(int $id): void
     if (is_post()) {
         [$ok, $errors] = teams_save($existing);
         if ($ok) {
-            flash('success', 'Team saved.');
+            flash('success', __('Team saved.'));
             redirect('/teams/' . $id);
         }
         $t = array_merge($existing, $_POST);
     }
-    view('teams/form', ['title' => 'Edit team', 't' => $t, 'isNew' => false, 'errors' => $errors]);
+    view('teams/form', ['title' => __('Edit team'), 't' => $t, 'isNew' => false, 'errors' => $errors]);
 }
 
 function teams_show(int $id): void
@@ -108,7 +108,7 @@ function teams_delete(int $id): void
     require_role('admin', 'manager');
     $t = one('SELECT * FROM teams WHERE id = ?', [$id]) ?? not_found();
     if (trim((string) input('confirm_name')) !== trim($t['name'])) {
-        flash('error', 'Type the team name exactly to confirm the deletion.');
+        flash('error', __('Type the team name exactly to confirm the deletion.'));
         redirect('/teams/' . $id . '#delete-team');
     }
     $n = (int) scalar('SELECT COUNT(*) FROM bootcamps WHERE team_id = ?', [$id]);
@@ -117,8 +117,8 @@ function teams_delete(int $id): void
     purge_team($id);
     $db->commit();
     purge_files_now();
-    log_activity(null, 'Deleted team ' . $t['name'] . ' (with ' . $n . ' bootcamp' . ($n === 1 ? '' : 's') . ')');
-    flash('success', 'Team ' . $t['name'] . ' deleted.');
+    log_activity(null, fn () => __('Deleted team %s (%s)', $t['name'], __n($n, '%d bootcamp', '%d bootcamps')));
+    flash('success', __('Team %s deleted.', $t['name']));
     redirect('/teams');
 }
 
@@ -135,12 +135,12 @@ function teams_create_account(int $teamId, string $name, string $email, string $
     $email = mb_strtolower(trim($email));
     $name = trim($name);
     if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        flash('error', 'Enter a name and a valid email for the account.');
+        flash('error', __('Enter a name and a valid email for the account.'));
         return;
     }
     $existing = one('SELECT * FROM users WHERE email = ?', [$email]);
     if ($existing) {
-        flash('error', 'An account with ' . $email . ' already exists' . ($existing['role'] === 'client' && (int) $existing['team_id'] !== $teamId ? ' (in another team)' : '') . '.');
+        flash('error', __('An account with %s already exists', $email) . ($existing['role'] === 'client' && (int) $existing['team_id'] !== $teamId ? ' ' . __('(in another team)') : '') . '.');
         return;
     }
     $uid = insert('users', [
@@ -155,9 +155,9 @@ function teams_create_account(int $teamId, string $name, string $email, string $
 function flash_invite_result(string $email, bool $sent, string $link): void
 {
     if ($sent) {
-        flash('success', 'Invitation sent to ' . $email . '.');
+        flash('success', __('Invitation sent to %s.', $email));
     } else {
-        flash('warning', 'Account created, but the email could not be sent. Send this link to ' . e($email) . ' yourself (valid 7 days):<br><input class="copy-input" readonly value="' . e($link) . '" onclick="this.select()">', true);
+        flash('warning', e(__('Account created, but the email could not be sent. Send this link to %s yourself (valid 7 days):', $email)) . '<br><input class="copy-input" readonly value="' . e($link) . '" onclick="this.select()">', true);
     }
 }
 

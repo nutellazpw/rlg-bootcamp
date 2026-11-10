@@ -23,7 +23,7 @@ function dashboard_index(): void
     );
     $missingRoom = all("$sel WHERE b.status IN ('planned','ready') AND (b.room IS NULL OR b.room = '') AND b.start_date <= (CURDATE() + INTERVAL 7 DAY) ORDER BY b.start_date");
     view('dashboard/index', [
-        'title' => 'Dashboard',
+        'title' => __('Dashboard'),
         'active' => $active,
         'upcoming' => $upcoming,
         'tickets' => $tickets,
@@ -71,7 +71,7 @@ function dashboard_calendar(): void
     }
 
     view('dashboard/calendar', [
-        'title' => 'Calendar',
+        'title' => __('Calendar'),
         'month' => $first,
         'gridStart' => $gridStart,
         'gridEnd' => $gridEnd,

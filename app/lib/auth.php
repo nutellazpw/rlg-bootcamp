@@ -227,19 +227,24 @@ function find_password_token(string $token): ?array
 /** Send invite email; returns [sent(bool), link]. */
 function send_invite(array $u): array
 {
+    return with_locale(user_locale($u), fn () => send_invite_mail($u));
+}
+
+function send_invite_mail(array $u): array
+{
     $token = create_password_token((int) $u['id'], 'invite');
     $link = abs_url('/set-password?token=' . $token);
     $isClient = $u['role'] === 'client';
     $intro = $isClient
         ? 'Relog Media has created your team account for RLG Bootcamp. Here you can see your bootcamp details, choose drinks for your room, set up chairs, request extra equipment and contact our support team.'
-        : 'You have been added to RLG Bootcamp as ' . (ROLES[$u['role']] ?? $u['role']) . '.';
+        : __('You have been added to RLG Bootcamp as %s.', lbl(ROLES, $u['role']));
     $sent = send_mail(
         $u['email'],
-        'Your RLG Bootcamp account',
+        __('Your RLG Bootcamp account'),
         mail_template(
-            'Welcome, ' . $u['name'],
-            $intro . '<br><br>Click the button below to set your password. The link is valid for 7 days.',
-            'Set password',
+            __('Welcome, %s', $u['name']),
+            e($intro) . '<br><br>' . e(__('Click the button below to set your password. The link is valid for 7 days.')),
+            __('Set password'),
             $link
         )
     );

@@ -74,11 +74,11 @@ function collect_uploads(string $field = 'files'): array
             continue;
         }
         if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) {
-            $errors[] = $name . ' is too large (max ' . human_bytes(upload_limit_bytes()) . ').';
+            $errors[] = __('%s is too large (max %s).', $name, human_bytes(upload_limit_bytes()));
             continue;
         }
         if ($err !== UPLOAD_ERR_OK || !is_uploaded_file($tmp)) {
-            $errors[] = $name . ' could not be uploaded.';
+            $errors[] = __('%s could not be uploaded.', $name);
             continue;
         }
         $mime = (string) $finfo->file($tmp);
@@ -86,17 +86,17 @@ function collect_uploads(string $field = 'files'): array
             $mime = 'video/quicktime';
         }
         if (!isset(ATTACH_TYPES[$mime])) {
-            $errors[] = $name . ': only photos and videos are allowed.';
+            $errors[] = __('%s: only photos and videos are allowed.', $name);
             continue;
         }
         $size = (int) $f['size'][$i];
         $limit = str_starts_with($mime, 'video/') ? ATTACH_MAX_VIDEO : ATTACH_MAX_IMAGE;
         if ($size > $limit) {
-            $errors[] = $name . ' is too large (max ' . human_bytes($limit) . ').';
+            $errors[] = __('%s is too large (max %s).', $name, human_bytes($limit));
             continue;
         }
         if (count($ok) >= ATTACH_MAX_FILES) {
-            $errors[] = 'Max ' . ATTACH_MAX_FILES . ' files per message.';
+            $errors[] = __('Max %d files per message.', ATTACH_MAX_FILES);
             break;
         }
         $ok[] = ['tmp' => $tmp, 'mime' => $mime, 'ext' => ATTACH_TYPES[$mime], 'size' => $size, 'name' => mb_substr($name, 0, 190)];
@@ -137,10 +137,10 @@ function attachments_label(array $files): string
     $p = count($files) - $v;
     $parts = [];
     if ($p) {
-        $parts[] = $p . ' photo' . ($p > 1 ? 's' : '');
+        $parts[] = __n($p, '%d photo', '%d photos');
     }
     if ($v) {
-        $parts[] = $v . ' video' . ($v > 1 ? 's' : '');
+        $parts[] = __n($v, '%d video', '%d videos');
     }
     return $parts ? '📎 ' . implode(' + ', $parts) : '';
 }

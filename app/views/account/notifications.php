@@ -1,12 +1,12 @@
 <div class="page-head">
-    <h1>Notifications</h1>
+    <h1><?= e(__('Notifications')) ?></h1>
     <?php if (array_filter($rows, fn ($n) => !$n['read_at'])): ?>
-        <form method="post" action="<?= e(url('/notifications/read-all')) ?>"><?= csrf_field() ?><button class="btn btn-ghost btn-sm">Mark all as read</button></form>
+        <form method="post" action="<?= e(url('/notifications/read-all')) ?>"><?= csrf_field() ?><button class="btn btn-ghost btn-sm"><?= e(__('Mark all as read')) ?></button></form>
     <?php endif; ?>
 </div>
 <section class="card card-flush">
     <?php if (!$rows): ?>
-        <p class="muted empty-sm">No notifications yet.</p>
+        <p class="muted empty-sm"><?= e(__('No notifications yet.')) ?></p>
     <?php else: ?>
         <div class="list">
             <?php foreach ($rows as $n): ?>

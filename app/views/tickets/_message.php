@@ -1,5 +1,5 @@
 <?php if ($m['is_system']): ?>
-    <div class="msg-system" data-id="<?= (int) $m['id'] ?>"><?= e($m['body']) ?> · <?= e(date('d M H:i', strtotime($m['created_at']))) ?></div>
+    <div class="msg-system" data-id="<?= (int) $m['id'] ?>"><?= e(system_message_text((string) $m['body'])) ?> · <?= e(ldate('d M H:i', strtotime($m['created_at']))) ?></div>
 <?php else:
     $mine = (int) $m['user_id'] === (int) $me['id'];
     $fromStaff = in_array($m['user_role'], STAFF_ROLES, true);
@@ -7,9 +7,9 @@
     <div class="msg<?= $mine ? ' mine' : '' ?><?= $fromStaff ? ' staff' : ' client' ?>" data-id="<?= (int) $m['id'] ?>">
         <div class="msg-meta">
             <?= avatar_html(['id' => $m['user_id'], 'role' => $m['user_role'], 'name' => $m['user_name'] ?? '?', 'avatar' => $m['user_avatar'] ?? null, 'team_id' => $m['user_team_id'] ?? null, 'team_logo' => $m['user_team_logo'] ?? null], 'xs') ?>
-            <strong><?= e($m['user_name'] ?? 'Deleted user') ?></strong>
-            <?php if ($fromStaff): ?><span class="tag tag-staff"><?= is_staff($me) ? e(ROLES[$m['user_role']] ?? '') : 'Relog' ?></span><?php endif; ?>
-            <span class="muted"><?= e(date('d M H:i', strtotime($m['created_at']))) ?></span>
+            <strong><?= e($m['user_name'] ?? __('Deleted user')) ?></strong>
+            <?php if ($fromStaff): ?><span class="tag tag-staff"><?= is_staff($me) ? e(lbl(ROLES, $m['user_role'])) : 'Relog' ?></span><?php endif; ?>
+            <span class="muted"><?= e(ldate('d M H:i', strtotime($m['created_at']))) ?></span>
         </div>
         <?php if (trim((string) $m['body']) !== ''): ?><div class="msg-body"><?= nl2br_e($m['body']) ?></div><?php endif; ?>
         <?php if (!empty($m['attachments'])): ?>
@@ -21,9 +21,9 @@
                             <source src="<?= e($src) ?>" type="<?= e($a['mime']) ?>">
                         </video>
                     <?php elseif (in_array($a['mime'], ['image/heic', 'image/heif'], true)): ?>
-                        <a class="media-file" href="<?= e($src) ?>" target="_blank">📷 <?= e($a['original_name'] ?: 'Photo') ?> <span>(<?= e(human_bytes((int) $a['size'])) ?>)</span></a>
+                        <a class="media-file" href="<?= e($src) ?>" target="_blank">📷 <?= e($a['original_name'] ?: __('Photo')) ?> <span>(<?= e(human_bytes((int) $a['size'])) ?>)</span></a>
                     <?php else: ?>
-                        <a class="media-img" href="<?= e($src) ?>" target="_blank"><img src="<?= e($src) ?>" alt="<?= e($a['original_name'] ?? 'Photo') ?>" loading="lazy"></a>
+                        <a class="media-img" href="<?= e($src) ?>" target="_blank"><img src="<?= e($src) ?>" alt="<?= e($a['original_name'] ?? __('Photo')) ?>" loading="lazy"></a>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </div>

@@ -1,8 +1,8 @@
 <?php $edit = can_manage(); ?>
 <div class="page-head">
     <div>
-        <h1>Drinks</h1>
-        <p class="muted">Teams choose from this list what they want in the room fridge. Drinks are included in the bootcamp.</p>
+        <h1><?= e(__('Drinks')) ?></h1>
+        <p class="muted"><?= e(__('Teams choose from this list what they want in the room fridge. Drinks are included in the bootcamp.')) ?></p>
     </div>
 </div>
 <div class="layout-side">
@@ -10,7 +10,7 @@
         <section class="card card-flush">
             <div class="table-wrap">
             <table class="table table-edit">
-                <thead><tr><th>Drink</th><th class="num">Order</th><th class="num" title="Chosen by current/upcoming bootcamps">Chosen by</th><?php if ($edit): ?><th>Active</th><th></th><?php endif; ?></tr></thead>
+                <thead><tr><th><?= e(__('Drink')) ?></th><th class="num"><?= e(__('Order')) ?></th><th class="num" title="<?= e(__('Chosen by current/upcoming bootcamps')) ?>"><?= e(__('Chosen by')) ?></th><?php if ($edit): ?><th><?= e(__('Active')) ?></th><th></th><?php endif; ?></tr></thead>
                 <tbody>
                 <?php foreach ($rows as $d): $fid = 'dr' . (int) $d['id']; ?>
                     <tr class="<?= $d['active'] ? '' : 'row-muted' ?>">
@@ -23,7 +23,7 @@
                         <td class="num"><?= (int) $d['chosen'] ?></td>
                         <?php if ($edit): ?>
                             <td><label class="switch"><input form="<?= $fid ?>" type="checkbox" name="active" value="1"<?= checked((bool) $d['active']) ?>><span></span></label></td>
-                            <td><button form="<?= $fid ?>" class="btn btn-xs" type="submit">Save</button></td>
+                            <td><button form="<?= $fid ?>" class="btn btn-xs" type="submit"><?= e(__('Save')) ?></button></td>
                         <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
@@ -35,11 +35,11 @@
     <?php if ($edit): ?>
     <aside class="col-side">
         <section class="card">
-            <h2 class="card-title">Add drink</h2>
+            <h2 class="card-title"><?= e(__('Add drink')) ?></h2>
             <form method="post" action="<?= e(url('/drinks')) ?>" class="form">
                 <?= csrf_field() ?>
-                <label class="field"><span>Name</span><input type="text" name="name" required placeholder="e.g. Pepsi Max"></label>
-                <button class="btn btn-block" type="submit">Add</button>
+                <label class="field"><span><?= e(__('Name')) ?></span><input type="text" name="name" required placeholder="<?= e(__('e.g. Pepsi Max')) ?>"></label>
+                <button class="btn btn-block" type="submit"><?= e(__('Add')) ?></button>
             </form>
         </section>
     </aside>
