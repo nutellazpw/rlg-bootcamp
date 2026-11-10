@@ -943,3 +943,11 @@ tr.needs-action td:first-child { box-shadow: inset 4px 0 0 var(--orange); }
 :root:not([data-theme="light"]) .avatar-team img {
   filter: drop-shadow(0 0 1px rgba(255, 255, 255, .85)) drop-shadow(0 0 5px rgba(255, 255, 255, .35));
 }
+
+/* Compact extra-equipment request */
+.request-box { margin-top: 12px; }
+.request-box > summary { list-style: none; display: inline-flex; }
+.request-box > summary::-webkit-details-marker { display: none; }
+.request-box[open] > summary { background: var(--orange); color: #fff; }
+.request-box .extra-form { max-width: 620px; margin-top: 12px; padding-top: 0; border-top: 0; }
+#extras .list-compact + .request-box { padding-top: 12px; border-top: 1px dashed var(--line-2); }

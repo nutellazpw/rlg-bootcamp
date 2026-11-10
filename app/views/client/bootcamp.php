@@ -179,7 +179,10 @@ $showPrices = !empty($b['show_prices']);
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
+    <?php if (!$extras): ?><p class="muted small">Need another monitor, a webcam or something else in the room? Send us a request.</p><?php endif; ?>
     <?php if ($open): ?>
+        <details class="request-box">
+        <summary class="btn btn-sm btn-outline">+ Request extra equipment</summary>
         <form method="post" action="<?= e(url('/my/bootcamp/' . $b['id'] . '/extras')) ?>" class="form extra-form" data-extra-form>
             <?= csrf_field() ?>
             <div class="extra-rows" data-extra-rows>
@@ -202,6 +205,7 @@ $showPrices = !empty($b['show_prices']);
             <div><button class="btn btn-sm" type="submit">Send request</button></div>
             <p class="hint">The bootcamp manager confirms each request<?= $showPrices ? '. Extra equipment is charged per day.' : '.' ?></p>
         </form>
+        </details>
     <?php endif; ?>
 </section>
 
