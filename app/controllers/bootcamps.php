@@ -11,7 +11,7 @@ function bootcamps_index(): void
         'past' => "b.status = 'completed' OR (b.end_date < CURDATE() AND b.status <> 'cancelled')",
         'cancelled' => "b.status = 'cancelled'",
         'all' => '1=1',
-        default => "b.status <> 'cancelled' AND b.end_date >= CURDATE()",
+        default => "b.status NOT IN ('cancelled','completed') AND b.end_date >= CURDATE()",
     };
     $params = [];
     $sql = "SELECT b.*, t.name AS team_name, t.game AS team_game, h.name AS hotel_name

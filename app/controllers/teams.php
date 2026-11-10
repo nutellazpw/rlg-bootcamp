@@ -8,7 +8,7 @@ function teams_index(): void
     $params = [];
     $sql = "SELECT t.*,
               (SELECT COUNT(*) FROM users u WHERE u.team_id = t.id AND u.role = 'client' AND u.active = 1) AS accounts,
-              (SELECT MIN(b.start_date) FROM bootcamps b WHERE b.team_id = t.id AND b.status <> 'cancelled' AND b.end_date >= CURDATE()) AS next_start,
+              (SELECT MIN(b.start_date) FROM bootcamps b WHERE b.team_id = t.id AND b.status NOT IN ('cancelled','completed') AND b.end_date >= CURDATE()) AS next_start,
               (SELECT COUNT(*) FROM bootcamps b WHERE b.team_id = t.id AND b.status <> 'cancelled') AS bootcamps
             FROM teams t";
     if ($search !== '') {

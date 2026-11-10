@@ -8,7 +8,7 @@ function catalog_hotels(): void
     require_staff();
     view('catalog/hotels', [
         'title' => 'Hotels',
-        'rows' => all("SELECT h.*, (SELECT COUNT(*) FROM bootcamps b WHERE b.hotel_id = h.id AND b.status <> 'cancelled' AND b.end_date >= CURDATE()) AS upcoming FROM hotels h ORDER BY h.active DESC, h.name"),
+        'rows' => all("SELECT h.*, (SELECT COUNT(*) FROM bootcamps b WHERE b.hotel_id = h.id AND b.status NOT IN ('cancelled','completed') AND b.end_date >= CURDATE()) AS upcoming FROM hotels h ORDER BY h.active DESC, h.name"),
     ]);
 }
 

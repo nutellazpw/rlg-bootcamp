@@ -739,10 +739,10 @@ function bootcamp_action_flags(array $bootcampIds = []): array
             $flags[(int) $r['id']][$label] = (int) $r['n'];
         }
     };
-    $add(all("SELECT b.id, COUNT(*) n FROM extra_requests x JOIN bootcamps b ON b.id = x.bootcamp_id WHERE x.status = 'pending'$where GROUP BY b.id"), 'Extra to approve');
-    $add(all("SELECT b.id, COUNT(*) n FROM extra_requests x JOIN bootcamps b ON b.id = x.bootcamp_id WHERE x.status = 'approved' AND x.delivered_at IS NULL AND x.delivery_by IS NULL$where GROUP BY b.id"), 'Delivery unassigned');
+    $add(all("SELECT b.id, COUNT(*) n FROM extra_requests x JOIN bootcamps b ON b.id = x.bootcamp_id WHERE x.status = 'pending' AND b.status NOT IN ('completed','cancelled')$where GROUP BY b.id"), 'Extra to approve');
+    $add(all("SELECT b.id, COUNT(*) n FROM extra_requests x JOIN bootcamps b ON b.id = x.bootcamp_id WHERE x.status = 'approved' AND x.delivered_at IS NULL AND x.delivery_by IS NULL AND b.status NOT IN ('completed','cancelled')$where GROUP BY b.id"), 'Delivery unassigned');
     $add(all("SELECT b.id, COUNT(*) n FROM tickets tk JOIN bootcamps b ON b.id = tk.bootcamp_id WHERE tk.status IN ('open','in_progress') AND tk.awaiting_staff_since IS NOT NULL$where GROUP BY b.id"), 'Ticket waiting');
-    $add(all("SELECT b.id, COUNT(*) n FROM activity_requests a JOIN bootcamps b ON b.id = a.bootcamp_id WHERE a.status = 'pending'$where GROUP BY b.id"), 'Activity request');
+    $add(all("SELECT b.id, COUNT(*) n FROM activity_requests a JOIN bootcamps b ON b.id = a.bootcamp_id WHERE a.status = 'pending' AND b.status NOT IN ('completed','cancelled')$where GROUP BY b.id"), 'Activity request');
     $add(all("SELECT b.id, 1 n FROM bootcamps b WHERE b.status IN ('planned','ready') AND (b.room IS NULL OR b.room = '') AND b.start_date <= (CURDATE() + INTERVAL 7 DAY) AND b.end_date >= CURDATE()$where"), 'No room');
     $add(all("SELECT b.id, 1 n FROM bootcamps b WHERE b.ready_by IS NOT NULL AND b.room_ready_at IS NULL AND b.status IN ('planned','active') AND b.ready_by < (NOW() + INTERVAL 24 HOUR) AND b.end_date >= CURDATE()$where"), 'Setup due');
     return $flags;

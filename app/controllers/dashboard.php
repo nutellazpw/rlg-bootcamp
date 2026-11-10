@@ -6,8 +6,8 @@ function dashboard_index(): void
     require_staff();
     auto_advance_bootcamps();
     $sel = 'SELECT b.*, t.name AS team_name, t.game AS team_game, h.name AS hotel_name FROM bootcamps b JOIN teams t ON t.id = b.team_id JOIN hotels h ON h.id = b.hotel_id';
-    $active = all("$sel WHERE b.status <> 'cancelled' AND CURDATE() BETWEEN b.start_date AND b.end_date ORDER BY h.name, b.room");
-    $upcoming = all("$sel WHERE b.status <> 'cancelled' AND b.start_date > CURDATE() AND b.start_date <= (CURDATE() + INTERVAL 30 DAY) ORDER BY b.start_date");
+    $active = all("$sel WHERE b.status NOT IN ('cancelled','completed') AND CURDATE() BETWEEN b.start_date AND b.end_date ORDER BY h.name, b.room");
+    $upcoming = all("$sel WHERE b.status NOT IN ('cancelled','completed') AND b.start_date > CURDATE() AND b.start_date <= (CURDATE() + INTERVAL 30 DAY) ORDER BY b.start_date");
     $tickets = all(
         "SELECT tk.*, t.name AS team_name, a.name AS assignee_name,
                 (SELECT body FROM ticket_messages m WHERE m.ticket_id = tk.id ORDER BY m.id DESC LIMIT 1) AS last_body
